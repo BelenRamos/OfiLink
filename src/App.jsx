@@ -8,6 +8,7 @@ import Login from './pages/Login';
 import Registro from './pages/Registro';
 import PerfilTrabajador from './pages/PerfilTrabajador';
 import MiPerfil from './pages/MiPerfil';
+import DashboardLayout from './pages/admin/DashboardLayout';
 
 function App() {
   return (
@@ -20,6 +21,7 @@ function App() {
         <Route path="/registro" element={<Registro />} />
         <Route path="/perfil/:id" element={<PerfilTrabajador />} />
         <Route path="/mi-perfil" element={<MiPerfil />} />
+        <Route path="/admin/*" element={<DashboardLayout />} />
       </Routes>
     </Router>
   );
