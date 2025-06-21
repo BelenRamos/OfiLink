@@ -1,0 +1,34 @@
+[
+  {
+    "id": 1,
+    "nombre": "Juan Pérez",
+    "oficio": "Electricista",
+    "zona": "Zona Norte",
+    "descripcion": "5 años de experiencia en instalaciones eléctricas.",
+    "telefono": "1122334455"
+  },
+  {
+    "id": 2,
+    "nombre": "María Gómez",
+    "oficio": "Plomera",
+    "zona": "Zona Sur",
+    "descripcion": "Especialista en reparaciones de cañerías.",
+    "telefono": "1166778899"
+  },
+  {
+    "id": 3,
+    "nombre": "Carlos Díaz",
+    "oficio": "Carpintero",
+    "zona": "Zona Centro",
+    "descripcion": "Trabajos en muebles y estructuras de madera.",
+    "telefono": "1144556677"
+  },
+  {
+    "id": 4,
+    "nombre": "Ana López",
+    "oficio": "Electricista",
+    "zona": "Zona Oeste",
+    "descripcion": "Instalaciones eléctricas residenciales y comerciales.",
+    "telefono": "1177889900"
+  }
+]
