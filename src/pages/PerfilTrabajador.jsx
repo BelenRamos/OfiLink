@@ -1,50 +1,65 @@
-import React from 'react';
+// src/pages/PerfilTrabajador.jsx
+import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import trabajadoresMock from '../data/trabajadores.json';
-
-// Datos simulados de reseñas
-const reseñasMock = {
-  1: [
-    { id: 1, cliente: 'Laura M.', comentario: 'Muy profesional y puntual.', puntuacion: 5 },
-    { id: 2, cliente: 'Carlos R.', comentario: 'Buen trabajo, recomendado.', puntuacion: 4 },
-  ],
-  2: [
-    { id: 3, cliente: 'Ana G.', comentario: 'Excelente servicio.', puntuacion: 5 },
-  ],
-  // etc...
-};
 
 const PerfilTrabajador = () => {
   const { id } = useParams();
   const navigate = useNavigate();
 
-  const trabajador = trabajadoresMock.find(t => t.id === parseInt(id));
-  if (!trabajador) {
-    return <div className="container mt-4"><p>Trabajador no encontrado.</p></div>;
-  }
+  const [trabajador, setTrabajador] = useState(null);
+  const [reseñas, setReseñas] = useState([]);
+  const [loading, setLoading] = useState(true);
 
-  const reseñas = reseñasMock[trabajador.id] || [];
+  useEffect(() => {
+    const fetchTrabajador = async () => {
+      try {
+        const res = await fetch(`/api/trabajadores/${id}`);
+        const data = await res.json();
+        setTrabajador(data);
+      } catch (error) {
+        console.error('Error al obtener el trabajador:', error);
+      }
+    };
+
+    const fetchReseñas = async () => {
+      try {
+        const res = await fetch(`/api/reseñas/trabajador/${id}`);
+        const data = await res.json();
+        setReseñas(data);
+      } catch (error) {
+        console.error('Error al obtener reseñas:', error);
+      }
+    };
+
+    Promise.all([fetchTrabajador(), fetchReseñas()]).finally(() => setLoading(false));
+  }, [id]);
+
+  if (loading) return <div className="container mt-4">Cargando...</div>;
+  if (!trabajador) return <div className="container mt-4"><p>Trabajador no encontrado.</p></div>;
 
   return (
     <div className="container mt-4">
       <button className="btn btn-secondary mb-3" onClick={() => navigate(-1)}>← Volver</button>
 
       <h2>{trabajador.nombre}</h2>
-      <h5 className="text-muted">{trabajador.oficio} - {trabajador.zona}</h5>
+      <h5 className="text-muted">{trabajador.oficios?.join(', ')} - {trabajador.zona}</h5>
       <p>{trabajador.descripcion}</p>
       <p><strong>Teléfono:</strong> <a href={`tel:${trabajador.telefono}`}>{trabajador.telefono}</a></p>
 
       <hr />
 
       <h4>Reseñas</h4>
-      {reseñas.length === 0 && <p>No hay reseñas para este trabajador.</p>}
-      <ul className="list-group">
-        {reseñas.map(r => (
-          <li key={r.id} className="list-group-item">
-            <strong>{r.cliente}</strong>: {r.comentario} <span>⭐ {r.puntuacion}</span>
-          </li>
-        ))}
-      </ul>
+      {reseñas.length === 0 ? (
+        <p>No hay reseñas para este trabajador.</p>
+      ) : (
+        <ul className="list-group">
+          {reseñas.map(r => (
+            <li key={r.id} className="list-group-item">
+              <strong>{r.nombre_cliente}</strong>: {r.comentario} <span>⭐ {r.puntuacion}</span>
+            </li>
+          ))}
+        </ul>
+      )}
     </div>
   );
 };
