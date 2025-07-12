@@ -1,17 +1,30 @@
-import React, { useState } from 'react';
-import trabajadoresMock from '../data/trabajadores.json';
+import { useEffect, useState } from 'react';
+// import trabajadoresMock from '../data/trabajadores.json'; ❌ esto ya no
 import CardTrabajador from '../components/CardTrabajador';
 import FiltroTrabajadores from '../components/FiltroTrabajadores';
 
 const Buscar = () => {
   const [oficio, setOficio] = useState('');
   const [zona, setZona] = useState('');
+  const [trabajadores, setTrabajadores] = useState([]);
 
-  const trabajadoresFiltrados = trabajadoresMock.filter(t => {
-    const matchOficio = oficio ? t.oficio.toLowerCase().includes(oficio.toLowerCase()) : true;
-    const matchZona = zona ? t.zona === zona : true;
-    return matchOficio && matchZona;
-  });
+  useEffect(() => {
+    const fetchTrabajadores = async () => {
+      try {
+        const queryParams = new URLSearchParams();
+        if (oficio) queryParams.append('oficio', oficio);
+        if (zona) queryParams.append('zona', zona);
+
+        const res = await fetch(`/api/trabajadores?${queryParams.toString()}`);
+        const data = await res.json();
+        setTrabajadores(data);
+      } catch (error) {
+        console.error('Error al obtener trabajadores:', error);
+      }
+    };
+
+    fetchTrabajadores();
+  }, [oficio, zona]);
 
   return (
     <div className="container mt-4">
@@ -20,8 +33,8 @@ const Buscar = () => {
       <FiltroTrabajadores oficio={oficio} setOficio={setOficio} zona={zona} setZona={setZona} />
 
       <div className="row">
-        {trabajadoresFiltrados.length > 0 ? (
-          trabajadoresFiltrados.map(trabajador => (
+        {trabajadores.length > 0 ? (
+          trabajadores.map(trabajador => (
             <div key={trabajador.id} className="col-md-6 mb-4">
               <CardTrabajador trabajador={trabajador} />
             </div>

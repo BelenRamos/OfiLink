@@ -49,11 +49,27 @@ router.get('/:id', async (req, res) => {
 });
 
 
-// GET /api/trabajadores
+// GET /api/trabajadores?oficio=Plomero&zona=Norte
 router.get('/', async (req, res) => {
+  const { oficio, zona } = req.query;
+
   try {
     const pool = await poolPromise;
-    const result = await pool.request().query(`
+    const request = pool.request();
+
+    let whereClause = 'WHERE 1=1';
+
+    if (oficio) {
+      request.input('oficio', sql.VarChar, `%${oficio}%`);
+      whereClause += ' AND o.nombre LIKE @oficio';
+    }
+
+    if (zona) {
+      request.input('zona', sql.VarChar, zona);
+      whereClause += ' AND z.nombre = @zona';
+    }
+
+    const result = await request.query(`
       SELECT 
         p.id,
         p.nombre,
@@ -70,20 +86,22 @@ router.get('/', async (req, res) => {
       LEFT JOIN Oficio o ON o.id = toff.oficio_id
       LEFT JOIN Trabajador_Zona tz ON tz.trabajador_id = t.id
       LEFT JOIN Zona z ON z.id = tz.zona_id
+      ${whereClause}
       GROUP BY p.id, p.nombre, p.mail, t.descripcion, t.contacto, t.disponible, t.calificacion_promedio
     `);
 
     const trabajadores = result.recordset.map(t => ({
       ...t,
-      oficios: t.oficios ? t.oficios.split(',') : [],
-      zonas: t.zonas ? t.zonas.split(',') : [],
+      oficios: t.oficios ? [...new Set(t.oficios.split(',').map(o => o.trim()))] : [],
+      zonas: t.zonas ? [...new Set(t.zonas.split(',').map(z => z.trim()))] : [],
     }));
 
     res.json(trabajadores);
   } catch (err) {
-    console.error('❌ Error al obtener todos los trabajadores:', err);
-    res.status(500).json({ mensaje: 'Error al obtener trabajadores' });
+    console.error('❌ Error al obtener trabajadores filtrados:', err);
+    res.status(500).json({ mensaje: 'Error interno al filtrar trabajadores' });
   }
 });
+
 
 module.exports = router;
