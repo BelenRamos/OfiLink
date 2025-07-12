@@ -1,62 +1,56 @@
-const express = require('express');
-const router = express.Router();
-const { poolPromise, sql } = require('../db'); // Ajusta la ruta según tu estructura
+import React, { useEffect, useState } from 'react';
 
-// GET /api/trabajadores/:id
-router.get('/:id', async (req, res) => {
-  const id = parseInt(req.params.id);
-  try {
-    const pool = await poolPromise;
-    const result = await pool.request()
-      .input('id', sql.Int, id)
-      .query(`
-        SELECT t.id, t.nombre, t.descripcion, t.telefono, z.nombre AS zona,
-          STRING_AGG(o.nombre, ',') AS oficios
-        FROM Trabajadores t
-        LEFT JOIN Trabajadores_Oficios toff ON toff.trabajador_id = t.id
-        LEFT JOIN Oficios o ON o.id = toff.oficio_id
-        LEFT JOIN Zonas z ON z.id = t.zona_id
-        WHERE t.id = @id
-        GROUP BY t.id, t.nombre, t.descripcion, t.telefono, z.nombre
-      `);
+const Trabajadores = () => {
+  const [trabajadores, setTrabajadores] = useState([]);
+  const [cargando, setCargando] = useState(true);
+  const [error, setError] = useState(null);
 
-    if (result.recordset.length === 0) {
-      return res.status(404).json({ mensaje: 'Trabajador no encontrado' });
-    }
+  useEffect(() => {
+    fetch('/api/trabajadores')
+      .then(res => {
+        if (!res.ok) throw new Error('Error al obtener los trabajadores');
+        return res.json();
+      })
+      .then(data => {
+        setTrabajadores(data);
+        setCargando(false);
+      })
+      .catch(err => {
+        setError(err.message);
+        setCargando(false);
+      });
+  }, []);
 
-    // Convertir oficios de string a array
-    const trabajador = result.recordset[0];
-    trabajador.oficios = trabajador.oficios ? trabajador.oficios.split(',') : [];
+  if (cargando) return <p className="m-4">Cargando trabajadores...</p>;
+  if (error) return <p className="m-4 text-danger">Error: {error}</p>;
 
-    res.json(trabajador);
+  return (
+    <div className="container mt-4">
+      <h2 className="mb-4">Lista de Trabajadores</h2>
+      <table className="table table-bordered table-hover">
+        <thead className="table-light">
+          <tr>
+            <th>Nombre</th>
+            <th>Teléfono</th>
+            <th>Zona</th>
+            <th>Oficios</th>
+            <th>Disponibilidad</th>
+          </tr>
+        </thead>
+        <tbody>
+          {trabajadores.map(t => (
+            <tr key={t.id}>
+              <td>{t.nombre}</td>
+              <td>{t.telefono}</td>
+              <td>{t.zona}</td>
+              <td>{t.oficios.join(', ')}</td>
+              <td>{t.estado_disponibilidad}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+};
 
-  } catch (err) {
-    console.error('Error en GET /api/trabajadores/:id', err);
-    res.status(500).json({ mensaje: 'Error interno del servidor' });
-  }
-});
-
-// GET /api/reseñas/trabajador/:id
-router.get('/reseñas/trabajador/:id', async (req, res) => {
-  const id = parseInt(req.params.id);
-  try {
-    const pool = await poolPromise;
-    const result = await pool.request()
-      .input('id', sql.Int, id)
-      .query(`
-        SELECT r.id, r.comentario, r.puntuacion, c.nombre AS nombre_cliente
-        FROM Reseñas r
-        INNER JOIN Clientes c ON c.id = r.cliente_id
-        WHERE r.trabajador_id = @id
-        ORDER BY r.id DESC
-      `);
-
-    res.json(result.recordset);
-
-  } catch (err) {
-    console.error('Error en GET /api/reseñas/trabajador/:id', err);
-    res.status(500).json({ mensaje: 'Error interno del servidor' });
-  }
-});
-
-module.exports = router;
+export default Trabajadores;

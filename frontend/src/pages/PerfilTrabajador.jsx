@@ -11,28 +11,29 @@ const PerfilTrabajador = () => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const fetchTrabajador = async () => {
-      try {
-        const res = await fetch(`/api/trabajadores/${id}`);
-        const data = await res.json();
-        setTrabajador(data);
-      } catch (error) {
-        console.error('Error al obtener el trabajador:', error);
-      }
-    };
+  const fetchTrabajador = async () => {
+    try {
+      const res = await fetch(`/api/trabajadores/${id}`);
+      const data = await res.json();
+      setTrabajador(data);
+    } catch (error) {
+      console.error('Error al obtener el trabajador:', error);
+    }
+  };
 
-    const fetchReseñas = async () => {
-      try {
-        const res = await fetch(`/api/reseñas/trabajador/${id}`);
-        const data = await res.json();
-        setReseñas(data);
-      } catch (error) {
-        console.error('Error al obtener reseñas:', error);
-      }
-    };
+  const fetchReseñas = async () => {
+    try {
+      const res = await fetch(`/api/resenas/trabajador/${id}`);
+      const data = await res.json();
+      setReseñas(data);
+    } catch (error) {
+      console.error('Error al obtener reseñas:', error);
+    }
+  };
 
-    Promise.all([fetchTrabajador(), fetchReseñas()]).finally(() => setLoading(false));
-  }, [id]);
+  Promise.all([fetchTrabajador(), fetchReseñas()]).finally(() => setLoading(false));
+}, [id]);
+
 
   if (loading) return <div className="container mt-4">Cargando...</div>;
   if (!trabajador) return <div className="container mt-4"><p>Trabajador no encontrado.</p></div>;

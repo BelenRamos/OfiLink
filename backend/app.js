@@ -7,15 +7,17 @@ app.use(express.json());
 app.use(cors());
 
 // Rutas
-const trabajadoresRouter = require('./routes/trabajadores'); // Ajustá si está en otra carpeta
+const trabajadoresRouter = require('./routes/trabajadores'); 
 app.use('/api/trabajadores', trabajadoresRouter);
 
-// Si luego agregás rutas como clientes, contrataciones, etc.
-  // const clientesRouter = require('./routes/clientes');
-  // app.use('/api/clientes', clientesRouter);
+const resenasRouter = require('./routes/resenas');
+app.use('/api/resenas', resenasRouter);
+
 
 // Puerto de escucha
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
   console.log(`🚀 Servidor escuchando en http://localhost:${PORT}`);
 });
+
+

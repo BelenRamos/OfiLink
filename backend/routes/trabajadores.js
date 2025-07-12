@@ -1,19 +1,53 @@
 const express = require('express');
 const router = express.Router();
-const { poolPromise } = require('../db'); // ajustá según tu estructura
+const { poolPromise, sql } = require('../db');
 
-router.get('/', async (req, res) => {
+// GET /api/trabajadores/:id
+router.get('/:id', async (req, res) => {
+  const id = parseInt(req.params.id);
   try {
     const pool = await poolPromise;
-    const result = await pool.request().query('SELECT * FROM Trabajadores');
-    res.json(result.recordset);
+    const result = await pool.request()
+      .input('id', sql.Int, id)
+      .query(`
+        SELECT 
+          p.id,
+          p.nombre,
+          p.mail,
+          t.descripcion,
+          t.contacto,
+          t.disponible,
+          t.calificacion_promedio,
+          STRING_AGG(o.nombre, ', ') AS oficios,
+          STRING_AGG(z.nombre, ', ') AS zonas
+        FROM Trabajador t
+        INNER JOIN Persona p ON p.id = t.id
+        LEFT JOIN Trabajador_Oficio toff ON toff.trabajador_id = t.id
+        LEFT JOIN Oficio o ON o.id = toff.oficio_id
+        LEFT JOIN Trabajador_Zona tz ON tz.trabajador_id = t.id
+        LEFT JOIN Zona z ON z.id = tz.zona_id
+        WHERE t.id = @id
+        GROUP BY p.id, p.nombre, p.mail, t.descripcion, t.contacto, t.disponible, t.calificacion_promedio
+      `);
+
+
+    if (result.recordset.length === 0) {
+      return res.status(404).json({ mensaje: 'Trabajador no encontrado' });
+    }
+
+    const trabajador = result.recordset[0];
+    trabajador.oficios = [...new Set(trabajador.oficios.split(',').map(o => o.trim()))];
+    trabajador.zonas = [...new Set(trabajador.zonas.split(',').map(z => z.trim()))];
+
+
+    res.json(trabajador);
   } catch (err) {
-    console.error('Error al traer trabajadores:', err);
-    res.status(500).send('Error al obtener trabajadores');
+    console.error('❌ ERROR COMPLETO:', err); // MÁS CLARO
+    res.status(500).json({ mensaje: err.message }); // DEVOLVÉ EL MENSAJE DEL ERROR
   }
+
 });
 
-module.exports = router;
 
 // GET /api/trabajadores
 router.get('/', async (req, res) => {
@@ -21,23 +55,28 @@ router.get('/', async (req, res) => {
     const pool = await poolPromise;
     const result = await pool.request().query(`
       SELECT 
-        t.id, 
-        t.nombre, 
-        t.telefono, 
+        p.id,
+        p.nombre,
+        p.mail,
         t.descripcion,
-        t.estado_disponibilidad,
-        z.nombre AS zona,
-        STRING_AGG(o.nombre, ', ') AS oficios
-      FROM Trabajadores t
-      LEFT JOIN Zonas z ON t.zona_id = z.id
-      LEFT JOIN Trabajadores_Oficios toff ON t.id = toff.trabajador_id
-      LEFT JOIN Oficios o ON toff.oficio_id = o.id
-      GROUP BY t.id, t.nombre, t.telefono, t.descripcion, t.estado_disponibilidad, z.nombre
+        t.contacto,
+        t.disponible,
+        t.calificacion_promedio,
+        STRING_AGG(DISTINCT o.nombre, ',') AS oficios,
+        STRING_AGG(DISTINCT z.nombre, ',') AS zonas
+      FROM Trabajador t
+      INNER JOIN Persona p ON p.id = t.id
+      LEFT JOIN Trabajador_Oficio toff ON toff.trabajador_id = t.id
+      LEFT JOIN Oficio o ON o.id = toff.oficio_id
+      LEFT JOIN Trabajador_Zona tz ON tz.trabajador_id = t.id
+      LEFT JOIN Zona z ON z.id = tz.zona_id
+      GROUP BY p.id, p.nombre, p.mail, t.descripcion, t.contacto, t.disponible, t.calificacion_promedio
     `);
 
     const trabajadores = result.recordset.map(t => ({
       ...t,
-      oficios: t.oficios ? t.oficios.split(', ') : [],
+      oficios: t.oficios ? t.oficios.split(',') : [],
+      zonas: t.zonas ? t.zonas.split(',') : [],
     }));
 
     res.json(trabajadores);
@@ -46,3 +85,5 @@ router.get('/', async (req, res) => {
     res.status(500).json({ mensaje: 'Error al obtener trabajadores' });
   }
 });
+
+module.exports = router;
