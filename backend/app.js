@@ -2,7 +2,7 @@ const express = require('express');
 const app = express();
 const cors = require('cors');
 
-// Middleware para parsear JSON y habilitar CORS
+// Middleware para parsear JSON y habilitar CORS 49753
 app.use(express.json());
 app.use(cors());
 

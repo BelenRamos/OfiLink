@@ -8,23 +8,24 @@ const Buscar = () => {
   const [zona, setZona] = useState('');
   const [trabajadores, setTrabajadores] = useState([]);
 
-  useEffect(() => {
-    const fetchTrabajadores = async () => {
-      try {
-        const queryParams = new URLSearchParams();
-        if (oficio) queryParams.append('oficio', oficio);
-        if (zona) queryParams.append('zona', zona);
+useEffect(() => {
+  const fetchTrabajadores = async () => {
+    try {
+      const queryParams = new URLSearchParams();
+      if (oficio) queryParams.append('oficio', oficio);
+      if (zona) queryParams.append('zona', zona);
 
-        const res = await fetch(`/api/trabajadores?${queryParams.toString()}`);
-        const data = await res.json();
-        setTrabajadores(data);
-      } catch (error) {
-        console.error('Error al obtener trabajadores:', error);
-      }
-    };
+      const res = await fetch(`/api/trabajadores?${queryParams.toString()}`);
+      const data = await res.json();
+      console.log('✅ Trabajadores filtrados:', data);
+      setTrabajadores(data);
+    } catch (error) {
+      console.error('❌ Error al obtener trabajadores:', error);
+    }
+  };
 
-    fetchTrabajadores();
-  }, [oficio, zona]);
+  fetchTrabajadores();
+}, [oficio, zona]); // ✅ se vuelve a ejecutar cada vez que cambian
 
   return (
     <div className="container mt-4">
