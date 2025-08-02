@@ -13,6 +13,9 @@ app.use('/api/trabajadores', trabajadoresRouter);
 const resenasRouter = require('./routes/resenas');
 app.use('/api/resenas', resenasRouter);
 
+const authRoutes = require('./routes/auth');
+app.use('/api/auth', authRoutes);
+
 
 // Puerto de escucha
 const PORT = process.env.PORT || 3000;

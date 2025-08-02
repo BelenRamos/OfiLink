@@ -1,8 +1,12 @@
+const express = require('express');
+const router = express.Router();
+const { poolPromise, sql } = require('../db');
+
 // GET /api/trabajadores?oficio=Plomero&zona=Norte
 router.get('/', async (req, res) => {
   const { oficio, zona } = req.query;
   const zonaNombre = zona?.replace('Zona ', '');
-
+  
   try {
     const pool = await poolPromise;
     const request = pool.request();
@@ -32,10 +36,6 @@ router.get('/', async (req, res) => {
         )
       `;
     }
-
-    console.log('📦 Filtro oficio:', oficio);
-    console.log('📦 Filtro zona:', zonaNombre);
-    console.log('🧠 Filtros SQL:', filtros);
 
     const result = await request.query(`
       SELECT 
@@ -81,3 +81,5 @@ router.get('/', async (req, res) => {
     res.status(500).json({ mensaje: 'Error interno al filtrar trabajadores' });
   }
 });
+
+module.exports = router;

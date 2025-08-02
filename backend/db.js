@@ -4,12 +4,13 @@ const sql = require('mssql');
 const config = {
   user: 'admin',
   password: '2025',
-  server: 'localhost', 
+  server: 'localhost',
+  port: 1433, 
   database: 'OfiLinkDB',
   options: {
     encrypt: false,
     trustServerCertificate: true,
-    port: 1433 
+    enableArithAbort: true
   }
 };
 
