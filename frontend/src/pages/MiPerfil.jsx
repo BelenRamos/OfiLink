@@ -1,24 +1,27 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 
 const MiPerfil = () => {
   const navigate = useNavigate();
+  const [usuario, setUsuario] = useState(null);
 
-  const usuario = JSON.parse(localStorage.getItem('usuarioActual'));
+  useEffect(() => {
+    const usuarioGuardado = localStorage.getItem('usuarioActual');
+    if (!usuarioGuardado) {
+      navigate('/login');
+    } else {
+      setUsuario(JSON.parse(usuarioGuardado));
+    }
+  }, [navigate]);
 
-  // Si no hay usuario logueado, redirigimos al login
-  if (!usuario) {
-    navigate('/login');
-    return null;
-  }
+  if (!usuario) return null;
 
   return (
     <div className="container mt-4">
       <h2>Mi Perfil</h2>
       <hr />
-      <p><strong>Nombre:</strong> {usuario.Nombre}</p>
-      <p><strong>Email:</strong> {usuario.Email}</p>
-      <p><strong>Teléfono:</strong> {usuario.Telefono}</p>
+      <p><strong>Nombre:</strong> {usuario.nombre}</p>
+      <p><strong>Email:</strong> {usuario.mail}</p>
       <p><strong>Rol:</strong> {usuario.tipo === 'trabajador' ? 'Trabajador' : 'Cliente'}</p>
 
       {usuario.tipo === 'trabajador' && (
@@ -35,6 +38,19 @@ const MiPerfil = () => {
           <p>(A futuro se mostrarán aquí los trabajos solicitados)</p>
         </>
       )}
+
+      {/* Botón de cierre de sesión */}
+      <div className="mt-4">
+        <button
+          className="btn btn-outline-secondary"
+          onClick={() => {
+            localStorage.removeItem('usuarioActual');
+            navigate('/login');
+          }}
+        >
+          Cerrar sesión
+        </button>
+      </div>
     </div>
   );
 };

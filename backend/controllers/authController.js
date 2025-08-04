@@ -10,12 +10,13 @@ const login = async (req, res) => {
       .input('usuario', sql.VarChar, usuario)
       .input('password', sql.VarChar, password)
       .query(`
-        SELECT p.id, p.nombre, p.mail,
-               CASE 
-                 WHEN EXISTS (SELECT 1 FROM Trabajador t WHERE t.id = p.id) THEN 'trabajador'
-                 WHEN EXISTS (SELECT 1 FROM Cliente c WHERE c.id = p.id) THEN 'cliente'
-                 ELSE 'otro'
-               END AS tipo
+        SELECT 
+          p.id, p.nombre, p.mail,
+          CASE 
+            WHEN EXISTS (SELECT 1 FROM Trabajador t WHERE t.id = p.id) THEN 'trabajador'
+            WHEN EXISTS (SELECT 1 FROM Cliente c WHERE c.id = p.id) THEN 'cliente'
+            ELSE 'otro'
+          END AS tipo
         FROM Persona p
         WHERE p.mail = @usuario AND contraseña = @password
       `);
