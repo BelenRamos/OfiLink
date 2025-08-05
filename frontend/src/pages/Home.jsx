@@ -1,10 +1,14 @@
-import React from 'react';
+import { Link } from 'react-router-dom';
 
 const Home = () => {
   return (
-    <div className="container mt-4">
-      <h1 className="mb-3">Bienvenido a OfiLink</h1>
-      <p>Conectamos clientes con profesionales de oficios confiables en tu ciudad.</p>
+    <div className="container text-center mt-5">
+      <h1>Bienvenido a OfiLink</h1>
+      <p>Conectamos clientes con trabajadores de confianza en tu zona.</p>
+      <div className="mt-4">
+        <Link to="/registro" className="btn btn-success mx-2">Registrarse</Link>
+        <Link to="/login" className="btn btn-outline-primary mx-2">Ingresar</Link>
+      </div>
     </div>
   );
 };
