@@ -5,6 +5,12 @@ const MiPerfil = () => {
   const navigate = useNavigate();
   const [usuario, setUsuario] = useState(null);
 
+  const logout = () => {
+  localStorage.removeItem('usuarioActual');
+  setUsuario(null);
+  window.location.href = '/';
+  };
+
   useEffect(() => {
     const usuarioGuardado = localStorage.getItem('usuarioActual');
     if (!usuarioGuardado) {
@@ -41,15 +47,9 @@ const MiPerfil = () => {
 
       {/* Botón de cierre de sesión */}
       <div className="mt-4">
-        <button
-          className="btn btn-outline-secondary"
-          onClick={() => {
-            localStorage.removeItem('usuarioActual');
-            navigate('/login');
-          }}
-        >
-          Cerrar sesión
-        </button>
+          <button className="nav-link btn btn-link logout-btn" onClick={logout}>
+            Cerrar sesión
+          </button>
       </div>
     </div>
   );

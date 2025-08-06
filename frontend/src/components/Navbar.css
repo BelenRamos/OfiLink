@@ -1,0 +1,16 @@
+.navbar-custom {
+  background-color: rgb(45, 48, 53); /* Gris oscuro */
+}
+
+.navbar-custom .navbar-brand img {
+  height: 40px;
+}
+
+.navbar-custom .nav-link {
+  color: rgb(205, 148, 193); /* Rosa claro */
+  font-weight: 500;
+}
+
+.navbar-custom .nav-link:hover {
+  color: rgb(212, 226, 113); /* Amarillo verdoso */
+}

@@ -22,7 +22,7 @@ const Login = () => {
 
       const usuario = await res.json();
       localStorage.setItem('usuarioActual', JSON.stringify(usuario));
-      navigate('/perfil');
+      navigate('/mi-perfil');
     } catch (err) {
       alert('Credenciales incorrectas');
     }
@@ -51,6 +51,14 @@ const Login = () => {
             type="password"
             className="form-control"
           />
+{/*           <input
+            name="password"
+            type="password"
+            className="form-control"
+            autoComplete="current-password"
+            value={credenciales.password}
+            onChange={handleChange}
+          /> */}
         </div>
         <button type="submit" className="btn btn-primary w-100">Ingresar</button>
       </form>

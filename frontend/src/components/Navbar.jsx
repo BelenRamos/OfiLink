@@ -1,52 +1,54 @@
-import { Link } from 'react-router-dom';
+import { useEffect, useState } from 'react';
+import { Link, useLocation } from 'react-router-dom';
+import logo from '../assets/logo1.png';
+import './Navbar.css';
 
 const Navbar = () => {
-  const usuario = JSON.parse(localStorage.getItem('usuarioLogueado'));
+  const [usuario, setUsuario] = useState(null);
+  const location = useLocation();
+
+  useEffect(() => {
+    const stored = localStorage.getItem('usuarioActual');
+    setUsuario(stored ? JSON.parse(stored) : null);
+  }, [location]);
 
   const logout = () => {
-    localStorage.removeItem('usuarioLogueado');
+    localStorage.removeItem('usuarioActual');
+    setUsuario(null);
     window.location.href = '/';
   };
 
+  // Si no hay usuario, no mostramos el navbar
+  if (!usuario) return null;
+
   return (
-    <nav className="navbar navbar-expand-lg navbar-dark bg-primary px-4">
-      <Link className="navbar-brand" to="/">OfiLink</Link>
+    <nav className="navbar navbar-expand-lg navbar-custom px-4">
+      <Link className="navbar-brand" to="/home">
+        <img src={logo} alt="OfiLink logo" height="10" />
+      </Link>
+
       <div className="collapse navbar-collapse">
         <ul className="navbar-nav ms-auto">
+          <li className="nav-item">
+            <Link className="nav-link" to="/buscar">Buscar</Link>
+          </li>
+          <li className="nav-item">
+            <Link className="nav-link" to="/mi-perfil">Mi perfil</Link>
+          </li>
 
-
-          {!usuario && (
-            <>
-              <li className="nav-item">
-                <Link className="nav-link" to="/login">Ingresar</Link>
-              </li>
-              <li className="nav-item">
-                <Link className="nav-link" to="/registro">Registrarse</Link>
-              </li>
-
-            </>
+          {(usuario.tipo === 'admin' || usuario.tipo === 'supervisor') && (
+            <li className="nav-item">
+              <Link className="nav-link" to="/admin">Admin</Link>
+            </li>
+            
+            
           )}
 
-          {usuario && (
-            <>
-              <li className="nav-item">
-                <Link className="nav-link" to="/buscar">Buscar</Link>
-              </li>
-              <li className="nav-item">
-                <Link className="nav-link" to="/mi-perfil">Mi perfil</Link>
-              </li>
-
-              {(usuario.tipo === 'admin' || usuario.tipo === 'supervisor') && (
-                <li className="nav-item">
-                  <Link className="nav-link" to="/admin">Admin</Link>
-                </li>
-              )}
-
-              <li className="nav-item">
-                <button className="nav-link btn btn-link text-white" onClick={logout}>Cerrar sesión</button>
-              </li>
-            </>
-          )}
+          <li className="nav-item">
+            <button className="nav-link btn btn-link logout-btn" onClick={logout}>
+              Cerrar sesión
+            </button>
+          </li>
         </ul>
       </div>
     </nav>
