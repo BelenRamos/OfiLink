@@ -1,16 +1,26 @@
 .navbar-custom {
-  background-color: rgb(45, 48, 53); /* Gris oscuro */
+  background-color: rgb(205, 148, 193);
 }
 
-.navbar-custom .navbar-brand img {
-  height: 40px;
+.navbar-reducido {
+  padding-top: 1px !important;
+  padding-bottom: 1px !important;
+  min-height: 40px !important;
 }
 
 .navbar-custom .nav-link {
-  color: rgb(205, 148, 193); /* Rosa claro */
+  color: rgb(45, 48, 53);
   font-weight: 500;
+  padding-top: 2px !important;
+  padding-bottom: 2px !important;
 }
 
 .navbar-custom .nav-link:hover {
-  color: rgb(212, 226, 113); /* Amarillo verdoso */
+  color: rgb(212, 226, 113);
+}
+
+.navbar-brand img {
+  height: 50px !important;
+  padding: 0 !important;
+  margin: 0 !important;
 }

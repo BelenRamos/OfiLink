@@ -22,7 +22,7 @@ const Login = () => {
 
       const usuario = await res.json();
       localStorage.setItem('usuarioActual', JSON.stringify(usuario));
-      navigate('/mi-perfil');
+      navigate('/home');
     } catch (err) {
       alert('Credenciales incorrectas');
     }

@@ -18,37 +18,39 @@ const Navbar = () => {
     window.location.href = '/';
   };
 
-  // Si no hay usuario, no mostramos el navbar
-  if (!usuario) return null;
-
   return (
-    <nav className="navbar navbar-expand-lg navbar-custom px-4">
-      <Link className="navbar-brand" to="/home">
-        <img src={logo} alt="OfiLink logo" height="10" />
+    <nav className="navbar navbar-expand-lg navbar-custom px-4 navbar-reducido">
+
+      <Link className="navbar-brand d-flex align-items-center" to="/home">
+        <img src={logo} alt="OfiLink logo" className="logo-img" />
       </Link>
+
 
       <div className="collapse navbar-collapse">
         <ul className="navbar-nav ms-auto">
-          <li className="nav-item">
-            <Link className="nav-link" to="/buscar">Buscar</Link>
-          </li>
-          <li className="nav-item">
-            <Link className="nav-link" to="/mi-perfil">Mi perfil</Link>
-          </li>
+          {/* Si hay usuario, mostramos las opciones */}
+          {usuario ? (
+            <>
+              <li className="nav-item">
+                <Link className="nav-link" to="/buscar">Buscar</Link>
+              </li>
+              <li className="nav-item">
+                <Link className="nav-link" to="/mi-perfil">Mi perfil</Link>
+              </li>
 
-          {(usuario.tipo === 'admin' || usuario.tipo === 'supervisor') && (
-            <li className="nav-item">
-              <Link className="nav-link" to="/admin">Admin</Link>
-            </li>
-            
-            
-          )}
+              {(usuario.tipo === 'admin' || usuario.tipo === 'supervisor') && (
+                <li className="nav-item">
+                  <Link className="nav-link" to="/admin">Admin</Link>
+                </li>
+              )}
 
-          <li className="nav-item">
-            <button className="nav-link btn btn-link logout-btn" onClick={logout}>
-              Cerrar sesión
-            </button>
-          </li>
+              <li className="nav-item">
+                <button className="nav-link btn btn-link logout-btn" onClick={logout}>
+                  Cerrar sesión
+                </button>
+              </li>
+            </>
+          ) : null}
         </ul>
       </div>
     </nav>

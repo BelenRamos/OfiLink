@@ -18,7 +18,7 @@ function App() {
   return (
     <Router>
       {/* Navbar solo si hay usuario logueado */}
-      {usuario && <Navbar />}
+      <Navbar key={localStorage.getItem('usuarioActual') ? 'log' : 'nolog'} />
 
       <Routes>
         {/* Rutas públicas */}

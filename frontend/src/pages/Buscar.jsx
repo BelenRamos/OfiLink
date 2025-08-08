@@ -1,5 +1,4 @@
 import { useEffect, useState } from 'react';
-// import trabajadoresMock from '../data/trabajadores.json'; ❌ esto ya no
 import CardTrabajador from '../components/CardTrabajador';
 import FiltroTrabajadores from '../components/FiltroTrabajadores';
 
