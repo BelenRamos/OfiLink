@@ -44,10 +44,11 @@ function App() {
           </PrivateRoute>
         } />
         <Route path="/admin/*" element={
-          <PrivateRoute allowedRoles={['admin', 'supervisor']}>
+          <PrivateRoute allowedRoles={['administrador', 'supervisor']}>
             <DashboardLayout />
           </PrivateRoute>
         } />
+
       </Routes>
     </Router>
   );

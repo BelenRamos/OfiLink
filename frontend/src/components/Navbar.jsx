@@ -18,6 +18,8 @@ const Navbar = () => {
     window.location.href = '/';
   };
 
+  const tieneRol = (...roles) => roles.some(r => usuario?.roles_keys?.includes(r));
+
   return (
     <nav className="navbar navbar-expand-lg navbar-custom px-4 navbar-reducido">
 
@@ -38,11 +40,11 @@ const Navbar = () => {
                 <Link className="nav-link" to="/mi-perfil">Mi perfil</Link>
               </li>
 
-              {(usuario.tipo === 'admin' || usuario.tipo === 'supervisor') && (
-                <li className="nav-item">
-                  <Link className="nav-link" to="/admin">Admin</Link>
-                </li>
-              )}
+            {tieneRol('administrador', 'supervisor') && (
+              <li className="nav-item">
+                <Link className="nav-link" to="/admin">Administración</Link>
+              </li>
+            )}
 
               <li className="nav-item">
                 <button className="nav-link btn btn-link logout-btn" onClick={logout}>

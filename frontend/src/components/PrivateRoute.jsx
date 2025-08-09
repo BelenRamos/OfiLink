@@ -5,7 +5,13 @@ const PrivateRoute = ({ children, allowedRoles }) => {
 
   if (!usuario) return <Navigate to="/login" replace />;
 
-  if (allowedRoles && !allowedRoles.includes(usuario.tipo)) {
+  // allowedRoles y roles_keys están en minúscula para comparación
+  const userRoles = usuario.roles_keys || [];
+  const hasAccess = allowedRoles
+    ? allowedRoles.some(role => userRoles.includes(role.toLowerCase()))
+    : true;
+
+  if (!hasAccess) {
     return <Navigate to="/" replace />;
   }
 

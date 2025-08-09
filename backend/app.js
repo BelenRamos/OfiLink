@@ -16,6 +16,10 @@ app.use('/api/resenas', resenasRouter);
 const authRoutes = require('./routes/auth');
 app.use('/api/auth', authRoutes);
 
+//Seguridad
+const rolesRoutes = require('./routes/seguridad/roles');
+app.use('/api/roles', rolesRoutes);
+
 
 // Puerto de escucha
 const PORT = process.env.PORT || 3000;

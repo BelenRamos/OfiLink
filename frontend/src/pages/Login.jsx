@@ -21,7 +21,19 @@ const Login = () => {
       if (!res.ok) throw new Error('Error de login');
 
       const usuario = await res.json();
-      localStorage.setItem('usuarioActual', JSON.stringify(usuario));
+
+      // Ahora guardamos roles y grupo tal cual vienen
+      const usuarioNormalizado = {
+        id: usuario.id,
+        nombre: usuario.nombre,
+        mail: usuario.mail,
+        grupo: usuario.grupo,
+        roles: usuario.roles || [],
+        roles_keys: usuario.roles_keys || []
+      };
+
+      localStorage.setItem('usuarioActual', JSON.stringify(usuarioNormalizado));
+
       navigate('/home');
     } catch (err) {
       alert('Credenciales incorrectas');
@@ -51,14 +63,6 @@ const Login = () => {
             type="password"
             className="form-control"
           />
-{/*           <input
-            name="password"
-            type="password"
-            className="form-control"
-            autoComplete="current-password"
-            value={credenciales.password}
-            onChange={handleChange}
-          /> */}
         </div>
         <button type="submit" className="btn btn-primary w-100">Ingresar</button>
       </form>

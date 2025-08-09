@@ -10,15 +10,20 @@ const login = async (req, res) => {
       .input('usuario', sql.VarChar, usuario)
       .input('password', sql.VarChar, password)
       .query(`
-        SELECT 
-          p.id, p.nombre, p.mail,
-          CASE 
-            WHEN EXISTS (SELECT 1 FROM Trabajador t WHERE t.id = p.id) THEN 'trabajador'
-            WHEN EXISTS (SELECT 1 FROM Cliente c WHERE c.id = p.id) THEN 'cliente'
-            ELSE 'otro'
-          END AS tipo
+        SELECT
+          p.id,
+          p.nombre,
+          p.mail,
+          g.Nombre AS grupo,
+          STRING_AGG(r.Nombre, ',') AS roles,
+          STRING_AGG(LOWER(REPLACE(r.Nombre, ' ', '')), ',') AS roles_keys
         FROM Persona p
-        WHERE p.mail = @usuario AND contraseña = @password
+        LEFT JOIN Grupo g ON p.GrupoId = g.Id
+        LEFT JOIN Grupo_Rol gr ON g.Id = gr.GrupoId
+        LEFT JOIN Rol r ON gr.RolId = r.Id
+        WHERE p.mail = @usuario
+          AND p.contraseña = @password
+        GROUP BY p.id, p.nombre, p.mail, g.Nombre
       `);
 
     if (result.recordset.length === 0) {
@@ -26,6 +31,15 @@ const login = async (req, res) => {
     }
 
     const usuarioEncontrado = result.recordset[0];
+
+    usuarioEncontrado.roles = usuarioEncontrado.roles
+      ? usuarioEncontrado.roles.split(',')
+      : [];
+
+    usuarioEncontrado.roles_keys = usuarioEncontrado.roles_keys
+      ? usuarioEncontrado.roles_keys.split(',')
+      : [];
+
     res.json(usuarioEncontrado);
   } catch (err) {
     console.error('Error al iniciar sesión:', err);
