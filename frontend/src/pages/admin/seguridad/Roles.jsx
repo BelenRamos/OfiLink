@@ -1,11 +1,14 @@
 import React, { useEffect, useState } from 'react';
 import axios from 'axios';
+import { FaChevronRight, FaChevronDown } from 'react-icons/fa';
 
 const Roles = () => {
   const [roles, setRoles] = useState([]);
   const [nuevoRol, setNuevoRol] = useState('');
   const [error, setError] = useState('');
   const [exito, setExito] = useState('');
+  const [rolesConPermisos, setRolesConPermisos] = useState([]);
+  const [expanded, setExpanded] = useState({}); // control de expandir/contraer
 
   const fetchRoles = async () => {
     try {
@@ -16,8 +19,25 @@ const Roles = () => {
     }
   };
 
+  const fetchRolesPermisos = async () => {
+    try {
+      const { data } = await axios.get('/api/roles/con-permisos');
+      const agrupado = data.reduce((acc, item) => {
+        if (!acc[item.RolId]) {
+          acc[item.RolId] = { rol: item.RolNombre, permisos: [] };
+        }
+        acc[item.RolId].permisos.push(item);
+        return acc;
+      }, {});
+      setRolesConPermisos(Object.values(agrupado));
+    } catch (error) {
+      console.error('Error al obtener roles con permisos:', error);
+    }
+  };
+
   useEffect(() => {
     fetchRoles();
+    fetchRolesPermisos();
   }, []);
 
   const handleAgregarRol = async (e) => {
@@ -39,6 +59,34 @@ const Roles = () => {
       console.error(err);
       setError(err.response?.data?.error || 'Error al crear el rol');
     }
+  };
+
+  const toggleExpand = (permisoId) => {
+    setExpanded((prev) => ({
+      ...prev,
+      [permisoId]: !prev[permisoId]
+    }));
+  };
+
+  const renderPermiso = (permiso, todos) => {
+    const hijos = todos.filter(p => p.PadreId === permiso.PermisoId);
+    const isExpanded = expanded[permiso.PermisoId] || false;
+
+    return (
+      <li key={permiso.PermisoId} style={{ marginLeft: '10px', listStyle: 'none' }}>
+        {hijos.length > 0 && (
+          <span onClick={() => toggleExpand(permiso.PermisoId)} style={{ cursor: 'pointer', marginRight: '5px' }}>
+            {isExpanded ? <FaChevronDown /> : <FaChevronRight />}
+          </span>
+        )}
+        {permiso.PermisoNombre}
+        {hijos.length > 0 && isExpanded && (
+          <ul style={{ paddingLeft: '20px' }}>
+            {hijos.map(hijo => renderPermiso(hijo, todos))}
+          </ul>
+        )}
+      </li>
+    );
   };
 
   return (
@@ -76,6 +124,19 @@ const Roles = () => {
           ))}
         </tbody>
       </table>
+
+      <h5 className="mt-4">Roles y Permisos (Árbol colapsable)</h5>
+      {rolesConPermisos.map((rol, idx) => {
+        const permisosRaiz = rol.permisos.filter(p => p.PadreId === null);
+        return (
+          <div key={idx} style={{ marginBottom: '20px' }}>
+            <strong>{rol.rol}</strong>
+            <ul style={{ paddingLeft: '10px' }}>
+              {permisosRaiz.map(p => renderPermiso(p, rol.permisos))}
+            </ul>
+          </div>
+        );
+      })}
     </div>
   );
 };
