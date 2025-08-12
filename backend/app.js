@@ -16,9 +16,22 @@ app.use('/api/resenas', resenasRouter);
 const authRoutes = require('./routes/auth');
 app.use('/api/auth', authRoutes);
 
+const personasRoutes = require('./routes/personas.js');
+app.use('/api/personas', personasRoutes);
+
+
 //Seguridad
 const rolesRoutes = require('./routes/seguridad/roles');
 app.use('/api/roles', rolesRoutes);
+
+const permisosRoutes = require('./routes/seguridad/permisos.js');
+app.use('/api/permisos', permisosRoutes);
+
+const gruposRoutes = require('./routes/seguridad/grupos.js');
+app.use('/api/grupos', gruposRoutes);
+
+const asignacionesRoutes = require('./routes/seguridad/asignaciones.js');
+app.use('/api/asignaciones', asignacionesRoutes);
 
 
 // Puerto de escucha

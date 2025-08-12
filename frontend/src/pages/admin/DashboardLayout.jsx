@@ -30,7 +30,7 @@ const DashboardLayout = () => {
             <Route path="usuarios" element={<Usuarios />} />
             <Route path="contrataciones" element={<Contrataciones />} />
             <Route path="reportes" element={<Reporte />} />
-            <Route path="seguridad" element={<Seguridad />} />
+            <Route path="seguridad/*" element={<Seguridad />} />
           </Routes>
         </div>
       </div>

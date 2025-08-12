@@ -2,11 +2,11 @@ const express = require('express');
 const router = express.Router();
 const {
   filtrarTrabajadores,
-  obtenerTrabajadorPorId, // 👈 AÑADIR
+  obtenerTrabajadorPorId,
 } = require('../controllers/trabajadoresController');
 
 router.get('/', filtrarTrabajadores);
-router.get('/:id', obtenerTrabajadorPorId); // 👈 NUEVA RUTA
+router.get('/:id', obtenerTrabajadorPorId); 
 
 
 module.exports = router;
