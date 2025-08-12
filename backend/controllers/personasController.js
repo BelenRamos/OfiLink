@@ -22,6 +22,33 @@ const getResumenPersonas = async (req, res) => {
   }
 };
 
+const getPersonasReporte = async (req, res) => {
+  try {
+    const pool = await poolPromise;
+
+    const result = await pool.request().query(`
+      SELECT 
+        p.id AS id,
+        p.nombre AS nombre,
+        o.nombre AS oficio,
+        z.nombre AS zona
+      FROM Persona p
+      LEFT JOIN Trabajador t ON t.id = p.id
+      LEFT JOIN Trabajador_Oficio tofi ON tofi.trabajador_id = t.id
+      LEFT JOIN Oficio o ON o.id = tofi.oficio_id
+      LEFT JOIN Trabajador_Zona tz ON tz.trabajador_id = t.id
+      LEFT JOIN Zona z ON z.id = tz.zona_id
+      ORDER BY p.nombre
+    `);
+
+    res.json(result.recordset);
+  } catch (error) {
+    console.error('Error al obtener el reporte de personas:', error);
+    res.status(500).json({ error: 'Error al obtener el reporte de personas' });
+  }
+};
+
 module.exports = {
-  getResumenPersonas
+  getResumenPersonas,
+  getPersonasReporte
 };
