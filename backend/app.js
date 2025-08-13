@@ -19,6 +19,8 @@ app.use('/api/auth', authRoutes);
 const personasRoutes = require('./routes/personas.js');
 app.use('/api/personas', personasRoutes);
 
+const contratacionesRoutes = require('./routes/contrataciones');
+app.use('/api/contrataciones', contratacionesRoutes);
 
 //Seguridad
 const rolesRoutes = require('./routes/seguridad/roles');

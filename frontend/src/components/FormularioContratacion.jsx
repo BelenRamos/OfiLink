@@ -1,5 +1,3 @@
-//Ejemplo basico
-
 import React, { useState } from 'react';
 
 const FormularioContratacion = ({ idTrabajador, onCancel, onSuccess }) => {
@@ -8,19 +6,28 @@ const FormularioContratacion = ({ idTrabajador, onCancel, onSuccess }) => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+
     try {
+      const usuarioGuardado = localStorage.getItem('usuarioActual');
+      if (!usuarioGuardado) throw new Error('Debes iniciar sesión como cliente para contratar.');
+      const usuario = JSON.parse(usuarioGuardado);
+
       const res = await fetch('/api/contrataciones', {
         method: 'POST',
-        headers: {'Content-Type': 'application/json'},
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          idTrabajador,
+          trabajador_id: idTrabajador,
+          cliente_id: usuario.id,
           descripcion,
-          fecha,
-          // el idCliente debe obtenerse del contexto o sesión
+          fecha_inicio: fecha
         }),
       });
+
       if (!res.ok) throw new Error('Error al crear la contratación');
-      onSuccess();
+
+      setDescripcion('');
+      setFecha('');
+      onSuccess && onSuccess();
     } catch (error) {
       alert(error.message);
     }
@@ -37,15 +44,19 @@ const FormularioContratacion = ({ idTrabajador, onCancel, onSuccess }) => {
           required
         />
       </div>
+
       <div className="mb-3">
         <label>Fecha deseada</label>
-        <input
-          type="date"
-          className="form-control"
-          value={fecha}
-          onChange={e => setFecha(e.target.value)}
-        />
+          <input
+            type="date"
+            min={new Date().toISOString().split('T')[0]}
+            className="form-control"
+            value={fecha}
+            onChange={e => setFecha(e.target.value)}
+            required
+          />
       </div>
+
       <button type="submit" className="btn btn-primary me-2">Enviar solicitud</button>
       <button type="button" className="btn btn-secondary" onClick={onCancel}>Cancelar</button>
     </form>
