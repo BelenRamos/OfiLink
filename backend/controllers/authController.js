@@ -1,4 +1,7 @@
 const { poolPromise, sql } = require('../db');
+const jwt = require('jsonwebtoken');
+require('dotenv').config(); // leer .env
+const SECRET_KEY = process.env.SECRET_KEY;
 
 const login = async (req, res) => {
   const { usuario, password } = req.body;
@@ -25,8 +28,7 @@ const login = async (req, res) => {
         WHERE p.mail = @usuario
           AND p.contraseña = @password
         GROUP BY p.id, p.nombre, p.mail, p.tipo_usuario, g.Nombre
-      `)
-
+      `);
 
     if (result.recordset.length === 0) {
       return res.status(401).json({ error: 'Credenciales inválidas' });
@@ -36,12 +38,24 @@ const login = async (req, res) => {
     usuarioEncontrado.roles = usuarioEncontrado.roles ? usuarioEncontrado.roles.split(',') : [];
     usuarioEncontrado.roles_keys = usuarioEncontrado.roles_keys ? usuarioEncontrado.roles_keys.split(',') : [];
 
-    res.json(usuarioEncontrado);
+    // ✅ Generar JWT
+    const token = jwt.sign(
+      {
+        id: usuarioEncontrado.id,
+        nombre: usuarioEncontrado.nombre,
+        mail: usuarioEncontrado.mail,
+        roles_keys: usuarioEncontrado.roles_keys
+      },
+      SECRET_KEY,
+      { expiresIn: '2h' }
+    );
+
+    res.json({ usuario: usuarioEncontrado, token });
+
   } catch (err) {
     console.error('Error al iniciar sesión:', err);
     res.status(500).json({ error: 'Error del servidor' });
   }
 };
-
 
 module.exports = { login };

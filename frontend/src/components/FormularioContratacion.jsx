@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { apiFetch } from '../utils/apiFetch';
 
 const FormularioContratacion = ({ idTrabajador, onCancel, onSuccess }) => {
   const [descripcion, setDescripcion] = useState('');
@@ -6,24 +7,20 @@ const FormularioContratacion = ({ idTrabajador, onCancel, onSuccess }) => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-
+      console.log('Datos a enviar:', {
+      trabajador_id: idTrabajador,
+      descripcion_trabajo: descripcion,
+      fecha_inicio: fecha
+    });
     try {
-      const usuarioGuardado = localStorage.getItem('usuarioActual');
-      if (!usuarioGuardado) throw new Error('Debes iniciar sesión como cliente para contratar.');
-      const usuario = JSON.parse(usuarioGuardado);
-
-      const res = await fetch('/api/contrataciones', {
+      await apiFetch('/api/contrataciones', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
+        body: {
           trabajador_id: idTrabajador,
-          cliente_id: usuario.id,
-          descripcion,
+          descripcion_trabajo: descripcion,
           fecha_inicio: fecha
-        }),
+        }
       });
-
-      if (!res.ok) throw new Error('Error al crear la contratación');
 
       setDescripcion('');
       setFecha('');
@@ -47,14 +44,14 @@ const FormularioContratacion = ({ idTrabajador, onCancel, onSuccess }) => {
 
       <div className="mb-3">
         <label>Fecha deseada</label>
-          <input
-            type="date"
-            min={new Date().toISOString().split('T')[0]}
-            className="form-control"
-            value={fecha}
-            onChange={e => setFecha(e.target.value)}
-            required
-          />
+        <input
+          type="date"
+          min={new Date().toISOString().split('T')[0]}
+          className="form-control"
+          value={fecha}
+          onChange={e => setFecha(e.target.value)}
+          required
+        />
       </div>
 
       <button type="submit" className="btn btn-primary me-2">Enviar solicitud</button>

@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { apiFetch } from '../utils/apiFetch';
 
 const Login = () => {
   const [credenciales, setCredenciales] = useState({ usuario: '', password: '' });
@@ -12,31 +13,33 @@ const Login = () => {
   const handleLogin = async (e) => {
     e.preventDefault();
     try {
+      // Usamos fetch normal solo para login, ya que no tenemos token aún
       const res = await fetch('/api/auth/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(credenciales),
       });
 
-      if (!res.ok) throw new Error('Error de login');
+      if (!res.ok) throw new Error('Credenciales incorrectas');
 
-      const usuario = await res.json();
+      const { usuario, token } = await res.json();
 
-      // Ahora guardamos roles y grupo tal cual vienen
+      // Guardamos usuario + token
       const usuarioNormalizado = {
         id: usuario.id,
         nombre: usuario.nombre,
         mail: usuario.mail,
         grupo: usuario.grupo,
         roles: usuario.roles || [],
-        roles_keys: usuario.roles_keys || []
+        roles_keys: usuario.roles_keys || [],
+        token // <-- agregamos el token aquí
       };
 
       localStorage.setItem('usuarioActual', JSON.stringify(usuarioNormalizado));
 
       navigate('/home');
     } catch (err) {
-      alert('Credenciales incorrectas');
+      alert(err.message);
     }
   };
 
