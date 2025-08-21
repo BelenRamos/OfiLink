@@ -52,7 +52,7 @@ const createContratacion = async (req, res) => {
 
     // Estado inicial: Aceptada
     const estadoResult = await pool.request()
-      .query(`SELECT id FROM EstadosContratacion WHERE descripcion = 'Aceptada'`);
+      .query(`SELECT id FROM EstadosContratacion WHERE id = 1`);
     if (estadoResult.recordset.length === 0) {
       return res.status(400).json({ error: 'No existe estado inicial para la contratación' });
     }
