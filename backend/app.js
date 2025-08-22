@@ -2,6 +2,10 @@ const express = require('express');
 const app = express();
 const cors = require('cors');
 
+//CRON --> Para la actualizacion de estado de contratacion
+const cron = require('node-cron');
+const { updateContratacionesEnCurso } = require('./controllers/contratacionesController');
+
 // Middleware para parsear JSON y habilitar CORS 49753
 app.use(express.json());
 app.use(cors());
@@ -34,6 +38,12 @@ app.use('/api/grupos', gruposRoutes);
 
 const asignacionesRoutes = require('./routes/seguridad/asignaciones.js');
 app.use('/api/asignaciones', asignacionesRoutes);
+
+// Se ejecuta cada 10 minutos
+cron.schedule('*/1 * * * *', () => {
+  console.log("⏳ Revisando contrataciones...");
+  updateContratacionesEnCurso();
+});
 
 
 // Puerto de escucha

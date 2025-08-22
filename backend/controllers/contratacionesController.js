@@ -4,36 +4,18 @@ const jwt = require('jsonwebtoken');
 require('dotenv').config();
 const SECRET_KEY = process.env.SECRET_KEY;
 
-// Obtener contrataciones (sin cambio)
-const getContrataciones = async (req, res) => {
-  try {
-    const pool = await poolPromise;
-    const result = await pool.request()
-      .query(`
-        SELECT c.id, pCliente.nombre AS cliente, pTrabajador.nombre AS trabajador,
-               ec.descripcion AS estado, c.fecha_inicio, c.fecha_fin, c.descripcion_trabajo
-        FROM Contratacion c
-        JOIN Cliente cl ON c.cliente_id = cl.id
-        JOIN Persona pCliente ON cl.id = pCliente.id
-        JOIN Trabajador t ON c.trabajador_id = t.id
-        JOIN Persona pTrabajador ON t.id = pTrabajador.id
-        JOIN EstadosContratacion ec ON c.estado_id = ec.id
-        ORDER BY c.id DESC
-      `);
-    res.json(result.recordset);
-  } catch (error) {
-    console.error('Error al obtener contrataciones:', error);
-    res.status(500).json({ error: 'Error al obtener contrataciones' });
-  }
+// Definir los estados de la contratación para mayor claridad y evitar "números mágicos"
+const ESTADOS = {
+  PENDIENTE: 1,
+  ACEPTADA: 2,
+  EN_CURSO: 3,
+  FINALIZADA: 4,
+  CANCELADA: 5,
 };
 
-// Crear nueva contratación usando JWT
-const createContratacion = async (req, res) => {
-  console.log('Cuerpo de la petición recibido:', req.body);
-  const { trabajador_id, fecha_inicio, descripcion_trabajo} = req.body;
-
+// Middleware para verificar y decodificar el token
+const verificarToken = (req, res, next) => {
   try {
-    // Leer token del header Authorization
     const authHeader = req.headers['authorization'];
     if (!authHeader) return res.status(401).json({ error: 'Token no provisto' });
 
@@ -41,27 +23,78 @@ const createContratacion = async (req, res) => {
     if (!token) return res.status(401).json({ error: 'Token inválido' });
 
     const usuarioActual = jwt.verify(token, SECRET_KEY);
+    req.usuario = usuarioActual; // Almacenar el usuario en el objeto de la petición
+    next();
+  } catch (error) {
+    console.error('Error de token:', error);
+    res.status(401).json({ error: 'Token inválido o expirado' });
+  }
+};
 
-    if (!usuarioActual.roles_keys?.includes('cliente')) {
-      return res.status(403).json({ error: 'Solo los clientes pueden contratar' });
+// Obtener contrataciones
+const getContrataciones = async (req, res) => {
+  try {
+    const { usuario } = req; // Obtenido del middleware verificarToken
+    const esTrabajador = usuario.roles_keys?.includes('trabajador');
+    const esCliente = usuario.roles_keys?.includes('cliente');
+
+    if (!esTrabajador && !esCliente) {
+      return res.status(403).json({ error: 'No autorizado' });
     }
-
-    const cliente_id = usuarioActual.id;
 
     const pool = await poolPromise;
+    const request = pool.request();
 
-    // Estado inicial: Aceptada
-    const estadoResult = await pool.request()
-      .query(`SELECT id FROM EstadosContratacion WHERE id = 1`);
-    if (estadoResult.recordset.length === 0) {
-      return res.status(400).json({ error: 'No existe estado inicial para la contratación' });
+    let query = `
+      SELECT c.id, pCliente.nombre AS cliente, pTrabajador.nombre AS trabajador,
+             ec.descripcion AS estado, c.fecha_inicio, c.fecha_fin, c.descripcion_trabajo
+      FROM Contratacion c
+      JOIN Cliente cl ON c.cliente_id = cl.id
+      JOIN Persona pCliente ON cl.id = pCliente.id
+      JOIN Trabajador t ON c.trabajador_id = t.id
+      JOIN Persona pTrabajador ON t.id = pTrabajador.id
+      JOIN EstadosContratacion ec ON c.estado_id = ec.id
+    `;
+
+    // Filtrar según rol usando consultas parametrizadas
+    if (esCliente) {
+      query += ` WHERE c.cliente_id = @idUsuario`;
+      request.input('idUsuario', sql.Int, usuario.id);
+    } else if (esTrabajador) {
+      query += ` WHERE c.trabajador_id = @idUsuario`;
+      request.input('idUsuario', sql.Int, usuario.id);
     }
-    const estado_id = estadoResult.recordset[0].id;
 
+    query += ` ORDER BY c.id DESC`;
+    const result = await request.query(query);
+
+    res.json(result.recordset);
+  } catch (error) {
+    console.error('Error al obtener contrataciones:', error);
+    res.status(500).json({ error: 'Error al obtener contrataciones' });
+  }
+};
+
+
+// Crear nueva contratación
+const createContratacion = async (req, res) => {
+  const { trabajador_id, fecha_inicio, descripcion_trabajo } = req.body;
+  const { usuario } = req;
+
+  if (!usuario.roles_keys?.includes('cliente')) {
+    return res.status(403).json({ error: 'Solo los clientes pueden contratar' });
+  }
+
+  const cliente_id = usuario.id;
+
+  try {
+    const pool = await poolPromise;
+
+    // Crear la contratación con estado PENDIENTE
     await pool.request()
       .input('cliente_id', sql.Int, cliente_id)
       .input('trabajador_id', sql.Int, trabajador_id)
-      .input('estado_id', sql.Int, estado_id)
+      .input('estado_id', sql.Int, ESTADOS.PENDIENTE) // Usar la constante
       .input('descripcion_trabajo', sql.VarChar(MAX), descripcion_trabajo)
       .input('fecha_inicio', sql.Date, fecha_inicio || new Date())
       .query(`
@@ -72,11 +105,114 @@ const createContratacion = async (req, res) => {
     res.status(201).json({ message: 'Contratación creada correctamente' });
   } catch (error) {
     console.error('Error al crear contratación:', error);
-    res.status(401).json({ error: 'Token inválido o expirado' });
+    res.status(500).json({ error: 'Error al crear la contratación' });
+  }
+};
+
+// Manejar acciones de contrataciones (aceptar, terminar, cancelar)
+const manejarAccionContratacion = async (req, res) => {
+  const { id, accion } = req.params;
+  const { usuario } = req;
+
+  try {
+    const pool = await poolPromise;
+
+    // Obtener la contratación para validar permisos
+    const contratacionRes = await pool.request()
+      .input('id', sql.Int, id)
+      .query(`SELECT * FROM Contratacion WHERE id = @id`);
+    if (contratacionRes.recordset.length === 0) {
+      return res.status(404).json({ error: 'Contratación no encontrada' });
+    }
+
+    const c = contratacionRes.recordset[0];
+    const rolKeys = usuario.roles_keys;
+
+    // Validaciones de permisos
+    let nuevoEstadoId;
+    let fechaFin = null;
+
+    switch (accion) {
+      case 'aceptar':
+        if (!rolKeys.includes('trabajador') || usuario.id !== c.trabajador_id) {
+          return res.status(403).json({ error: 'Solo el trabajador puede aceptar esta contratación.' });
+        }
+        if (c.estado_id !== ESTADOS.PENDIENTE) {
+          return res.status(400).json({ error: 'No se puede aceptar una contratación que no está pendiente.' });
+        }
+        nuevoEstadoId = ESTADOS.ACEPTADA;
+        break;
+
+      case 'terminar':
+        if (!rolKeys.includes('trabajador') || usuario.id !== c.trabajador_id) {
+          return res.status(403).json({ error: 'Solo el trabajador puede finalizar esta contratación.' });
+        }
+        if (c.estado_id !== ESTADOS.EN_CURSO) {
+          return res.status(400).json({ error: 'Solo se puede terminar una contratación en curso.' });
+        }
+        nuevoEstadoId = ESTADOS.FINALIZADA;
+        fechaFin = new Date();
+        break;
+
+      case 'cancelar':
+        // Puede ser cancelada por el cliente que la creó o por el trabajador asignado
+        if (!((rolKeys.includes('cliente') && usuario.id === c.cliente_id) || (rolKeys.includes('trabajador') && usuario.id === c.trabajador_id))) {
+          return res.status(403).json({ error: 'No puedes cancelar esta contratación' });
+        }
+        if (c.estado_id === ESTADOS.FINALIZADA || c.estado_id === ESTADOS.CANCELADA) {
+           return res.status(400).json({ error: 'No se puede cancelar una contratación ya finalizada o cancelada.' });
+        }
+        nuevoEstadoId = ESTADOS.CANCELADA;
+        fechaFin = new Date();
+        break;
+
+      default:
+        return res.status(400).json({ error: 'Acción no válida' });
+    }
+
+    // Actualizar la contratación en la base de datos
+    await pool.request()
+      .input('id', sql.Int, id)
+      .input('estado_id', sql.Int, nuevoEstadoId)
+      .input('fecha_fin', sql.Date, fechaFin)
+      .query(`
+        UPDATE Contratacion
+        SET estado_id = @estado_id,
+            fecha_fin = @fecha_fin
+        WHERE id = @id
+      `);
+
+    res.json({ message: `Contratación ${accion} correctamente` });
+  } catch (error) {
+    console.error('Error al manejar acción:', error);
+    res.status(500).json({ error: 'Error al procesar la acción' });
+  }
+};
+
+
+// Tarea CRON para actualizar contrataciones a 'En curso'
+const updateContratacionesEnCurso = async () => {
+  try {
+    const pool = await poolPromise;
+    await pool.request()
+      .input('estadoEnCurso', sql.Int, ESTADOS.EN_CURSO)
+      .input('estadoAceptada', sql.Int, ESTADOS.ACEPTADA)
+      .query(`
+        UPDATE Contratacion
+        SET estado_id = @estadoEnCurso
+        WHERE estado_id = @estadoAceptada
+          AND CAST(fecha_inicio AS DATE) <= CAST(GETDATE() AS DATE)
+      `);
+    console.log("✅ Contrataciones actualizadas a 'En curso'");
+  } catch (error) {
+    console.error("❌ Error al actualizar contrataciones en curso:", error);
   }
 };
 
 module.exports = {
   getContrataciones,
-  createContratacion
+  createContratacion,
+  manejarAccionContratacion,
+  updateContratacionesEnCurso,
+  verificarToken
 };

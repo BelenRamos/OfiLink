@@ -90,16 +90,6 @@ const MiPerfil = () => {
           )}
         </>
       )}
-
-      <div className="mt-4">
-        <button className="nav-link btn btn-link logout-btn" onClick={() => {
-          localStorage.removeItem('usuarioActual');
-          setUsuario(null);
-          window.location.href = '/';
-        }}>
-          Cerrar sesión
-        </button>
-      </div>
     </div>
   );
 };
