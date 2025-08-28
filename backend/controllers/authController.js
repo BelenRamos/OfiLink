@@ -126,4 +126,46 @@ const login = async (req, res) => {
   }
 }; */
 
-module.exports = { login };
+// ... (código existente)
+
+const cambiarPassword = async (req, res) => {
+  const { email, oldPassword, newPassword } = req.body;
+
+  try {
+    const pool = await poolPromise;
+
+    // Paso 1: Obtener el usuario y su contraseña hasheada
+    const result = await pool.request()
+      .input('email', sql.VarChar, email)
+      .query(`SELECT id, contraseña FROM Persona WHERE mail = @email`);
+
+    if (result.recordset.length === 0) {
+      return res.status(401).json({ mensaje: 'Credenciales inválidas.' });
+    }
+
+    const usuarioEncontrado = result.recordset[0];
+
+    // Paso 2: Comparar la contraseña actual con el hash almacenado
+    const passwordValida = await bcrypt.compare(oldPassword, usuarioEncontrado.contraseña);
+    if (!passwordValida) {
+      return res.status(401).json({ mensaje: 'Contraseña actual incorrecta.' });
+    }
+
+    // Paso 3: Hashear la nueva contraseña
+    const nuevaContraseñaHash = await bcrypt.hash(newPassword, 10);
+
+    // Paso 4: Actualizar la contraseña en la base de datos
+    await pool.request()
+      .input('id', sql.Int, usuarioEncontrado.id)
+      .input('nuevaContraseñaHash', sql.VarChar, nuevaContraseñaHash)
+      .query(`UPDATE Persona SET contraseña = @nuevaContraseñaHash WHERE id = @id`);
+
+    res.status(200).json({ mensaje: 'Contraseña cambiada exitosamente.' });
+
+  } catch (err) {
+    console.error('Error al cambiar la contraseña:', err);
+    res.status(500).json({ error: 'Error del servidor' });
+  }
+};
+
+module.exports = { login, cambiarPassword };

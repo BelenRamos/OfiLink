@@ -70,8 +70,16 @@ const Login = () => {
             className="form-control"
           />
         </div>
-        <button type="submit" className="btn btn-primary w-100">Ingresar</button>
-      </form>
+            <button type="submit" className="btn btn-primary w-100">Ingresar</button>
+          </form>
+      <div className="mt-3 text-center">
+        <p className="text-primary" style={{ cursor: 'pointer', textDecoration: 'underline' }} onClick={() => navigate('/formularioRegistro')}>
+          ¿No tienes una cuenta? Regístrate
+        </p>
+        <p className="text-primary mt-2" style={{ cursor: 'pointer', textDecoration: 'underline' }} onClick={() => navigate('/cambiarPassword')}>
+          ¿No recuerdas tu contraseña? Has click aquí
+        </p>
+      </div>
     </div>
   );
 };

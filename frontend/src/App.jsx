@@ -9,10 +9,11 @@ import Registro from './pages/Registro';
 import PerfilTrabajador from './pages/PerfilTrabajador';
 import MiPerfil from './pages/MiPerfil';
 import DashboardLayout from './pages/admin/DashboardLayout';
-import Home from './pages/Home'; // Página interna con resumen
+import Home from './pages/Home'; 
 import PrivateRoute from './components/PrivateRoute';
 import FormularioRegistro from './pages/FormularioRegistro';
 import FormularioTrabajador from './pages/FormularioTrabajador';
+import CambiarPassword from './pages/CambiarPassword';
 
 function App() {
   const usuario = JSON.parse(localStorage.getItem('usuarioActual'));
@@ -29,6 +30,8 @@ function App() {
         <Route path="/formularioRegistro" element={<FormularioRegistro />} />
         <Route path="/formularioTrabajador" element={<FormularioTrabajador />} />
         <Route path="/perfil/:id" element={<PerfilTrabajador />} />
+        <Route path="/cambiarPassword" element={<CambiarPassword />} />
+
 
         {/* Rutas privadas */}
         <Route path="/home" element={
