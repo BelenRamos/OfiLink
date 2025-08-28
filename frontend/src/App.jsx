@@ -11,6 +11,8 @@ import MiPerfil from './pages/MiPerfil';
 import DashboardLayout from './pages/admin/DashboardLayout';
 import Home from './pages/Home'; // Página interna con resumen
 import PrivateRoute from './components/PrivateRoute';
+import FormularioRegistro from './pages/FormularioRegistro';
+import FormularioTrabajador from './pages/FormularioTrabajador';
 
 function App() {
   const usuario = JSON.parse(localStorage.getItem('usuarioActual'));
@@ -24,7 +26,8 @@ function App() {
         {/* Rutas públicas */}
         <Route path="/" element={<MenuIngreso />} />
         <Route path="/login" element={<Login />} />
-        <Route path="/registro" element={<Registro />} />
+        <Route path="/formularioRegistro" element={<FormularioRegistro />} />
+        <Route path="/formularioTrabajador" element={<FormularioTrabajador />} />
         <Route path="/perfil/:id" element={<PerfilTrabajador />} />
 
         {/* Rutas privadas */}

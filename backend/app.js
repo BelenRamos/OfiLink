@@ -39,8 +39,15 @@ app.use('/api/grupos', gruposRoutes);
 const asignacionesRoutes = require('./routes/seguridad/asignaciones.js');
 app.use('/api/asignaciones', asignacionesRoutes);
 
-// Se ejecuta cada 10 minutos
-cron.schedule('*/1 * * * *', () => {
+const zonasRoutes = require('./routes/zonas');
+app.use('/api/zonas', zonasRoutes);
+
+const oficiosRoutes = require('./routes/oficios');
+app.use('/api/oficios', oficiosRoutes);
+
+
+// Se ejecuta cada 30 minutos
+cron.schedule('*/30 * * * *', () => {
   console.log("⏳ Revisando contrataciones...");
   updateContratacionesEnCurso();
 });
