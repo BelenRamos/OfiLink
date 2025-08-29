@@ -51,6 +51,35 @@ const getPersonasReporte = async (req, res) => {
 
 
 ////Para nueva persona
+// Función auxiliar para insertar oficios y zonas en las tablas de relación
+const _insertarOficiosYZonas = async (pool, trabajadorId, oficiosIds, zonasIds) => {
+    try {
+        // Inserción de oficios del trabajador
+        if (oficiosIds && oficiosIds.length > 0) {
+            for (const oficioId of oficiosIds) {
+                await pool.request()
+                    .input('trabajador_id', sql.Int, trabajadorId)
+                    .input('oficio_id', sql.Int, parseInt(oficioId))
+                    .query('INSERT INTO Trabajador_Oficio (trabajador_id, oficio_id) VALUES (@trabajador_id, @oficio_id)');
+            }
+        }
+
+        // Inserción de zonas del trabajador
+        if (zonasIds && zonasIds.length > 0) {
+            for (const zonaId of zonasIds) {
+                await pool.request()
+                    .input('trabajador_id', sql.Int, trabajadorId)
+                    .input('zona_id', sql.Int, parseInt(zonaId))
+                    .query('INSERT INTO Trabajador_Zona (trabajador_id, zona_id) VALUES (@trabajador_id, @zona_id)');
+            }
+        }
+    } catch (error) {
+        console.error('Error al insertar oficios y zonas:', error);
+        throw new Error('Error al asociar oficios y zonas al trabajador.');
+    }
+};
+
+// POST /api/personas/registrar
 const registrarPersona = async (req, res) => {
     const {
         nombre,
@@ -66,44 +95,50 @@ const registrarPersona = async (req, res) => {
         zonasIds
     } = req.body;
 
-  try {
-    // -----------------------------
-    // 1. Validaciones mejoradas y completas
-    // -----------------------------
+    // Inicia una transacción para asegurar que todas las operaciones se completen
+    let transaction;
+    try {
+        const pool = await poolPromise;
+        transaction = new sql.Transaction(pool);
+        await transaction.begin();
 
-    // Validar campos obligatorios
-    if (!nombre || !contraseña || !mail || !fecha_nacimiento || !tipo_usuario) {
-      return res.status(400).json({ error: 'Faltan campos obligatorios.' });
-    }
+        // -----------------------------
+        // 1. Validaciones mejoradas y completas
+        // -----------------------------
 
-    // Validar longitud de la contraseña
-    if (contraseña.length < 8) {
-      return res.status(400).json({ error: 'La contraseña debe tener al menos 8 caracteres.' });
-    }
+        // Validar campos obligatorios
+        if (!nombre || !contraseña || !mail || !fecha_nacimiento || !tipo_usuario) {
+            return res.status(400).json({ error: 'Faltan campos obligatorios.' });
+        }
 
-    // Validar email
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(mail)) {
-      return res.status(400).json({ error: 'El mail no es válido.' });
-    }
+        // Validar longitud de la contraseña
+        if (contraseña.length < 8) {
+            return res.status(400).json({ error: 'La contraseña debe tener al menos 8 caracteres.' });
+        }
 
-    // Validar edad mínima 18
-    const nacimiento = new Date(fecha_nacimiento);
-    const hoy = new Date();
-    let edad = hoy.getFullYear() - nacimiento.getFullYear();
-    const m = hoy.getMonth() - nacimiento.getMonth();
-    if (m < 0 || (m === 0 && hoy.getDate() < nacimiento.getDate())) {
-      edad--;
-    }
-    if (edad < 18) {
-      return res.status(400).json({ error: 'El usuario debe ser mayor de 18 años.' });
-    }
+        // Validar email
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (!emailRegex.test(mail)) {
+            return res.status(400).json({ error: 'El mail no es válido.' });
+        }
 
-    // Validar teléfono (solo si se manda)
-    const phoneRegex = /^[0-9]{9,}$/;
-    if (contacto && !phoneRegex.test(contacto)) {
-      return res.status(400).json({ error: 'El teléfono debe tener al menos 9 números y solo dígitos.' });
-    }
+        // Validar edad mínima 18
+        const nacimiento = new Date(fecha_nacimiento);
+        const hoy = new Date();
+        let edad = hoy.getFullYear() - nacimiento.getFullYear();
+        const m = hoy.getMonth() - nacimiento.getMonth();
+        if (m < 0 || (m === 0 && hoy.getDate() < nacimiento.getDate())) {
+            edad--;
+        }
+        if (edad < 18) {
+            return res.status(400).json({ error: 'El usuario debe ser mayor de 18 años.' });
+        }
+
+        // Validar teléfono (solo si se manda)
+        const phoneRegex = /^[0-9]{9,}$/;
+        if (contacto && !phoneRegex.test(contacto)) {
+            return res.status(400).json({ error: 'El teléfono debe tener al menos 9 números y solo dígitos.' });
+        }
 
         // -----------------------------
         // 2. Hashear contraseña y asignar GrupoId
@@ -115,15 +150,13 @@ const registrarPersona = async (req, res) => {
         } else if (tipo_usuario === 'trabajador') {
             grupoId = 4;
         } else {
-            // Manejar caso de tipo de usuario no válido
             return res.status(400).json({ error: 'Tipo de usuario inválido.' });
         }
 
         // -----------------------------
-        // 3. Ejecutar SP (con el nuevo parámetro)
+        // 3. Registrar persona y trabajador/cliente en la base de datos
         // -----------------------------
-        const pool = await poolPromise;
-        const request = pool.request();
+        const request = new sql.Request(transaction);
 
         request.input('nombre', sql.VarChar, nombre);
         request.input('contraseña', sql.VarChar, hashedPassword);
@@ -131,40 +164,52 @@ const registrarPersona = async (req, res) => {
         request.input('foto', sql.VarBinary, foto || null);
         request.input('fecha_nacimiento', sql.Date, fecha_nacimiento);
         request.input('tipo_usuario', sql.VarChar, tipo_usuario);
+        request.input('grupoId', sql.Int, grupoId);
         request.input('descripcion', sql.VarChar, descripcion || null);
         request.input('disponibilidad_horaria', sql.VarChar, disponibilidad_horaria || null);
         request.input('contacto', sql.VarChar, contacto || null);
-        request.input('oficiosIds', sql.NVarChar, oficiosIds ? oficiosIds.toString() : null);
-        request.input('zonasIds', sql.NVarChar, zonasIds ? zonasIds.toString() : null);
-        
-        // ¡Añade este nuevo input!
-        request.input('grupoId', sql.Int, grupoId);
+        request.input('calificacion_promedio', sql.Float, 0); // Valor inicial
+        request.input('disponible', sql.Bit, true); // Valor inicial
 
         const result = await request.execute('sp_RegistrarUsuario');
         const personaId = result.recordset?.[0]?.PersonaId;
 
-    if (!personaId) {
-      return res.status(400).json({ error: 'No se pudo registrar el usuario. El SP no devolvió un ID.' });
+        if (!personaId) {
+            await transaction.rollback();
+            return res.status(400).json({ error: 'No se pudo registrar el usuario. El SP no devolvió un ID.' });
+        }
+        
+        // -----------------------------
+        // 4. Insertar en las tablas de relación si es trabajador
+        // -----------------------------
+        if (tipo_usuario === 'trabajador') {
+            await _insertarOficiosYZonas(transaction, personaId, oficiosIds, zonasIds);
+        }
+
+        await transaction.commit();
+
+        // -----------------------------
+        // 5. Respuesta
+        // -----------------------------
+        res.status(201).json({
+            message: 'Usuario registrado correctamente.',
+            personaId
+        });
+
+    } catch (error) {
+        console.error('Error al registrar persona:', error);
+
+        if (transaction) {
+            await transaction.rollback();
+        }
+
+        // Error por mail duplicado
+        if (error.number === 2627) { // SQL Server error code for unique constraint violation
+            return res.status(409).json({ error: 'El mail ya está en uso.' });
+        }
+
+        res.status(500).json({ error: 'Error interno al registrar persona.' });
     }
-
-    // -----------------------------
-    // 4. Respuesta
-    // -----------------------------
-    res.status(201).json({
-      message: 'Usuario registrado correctamente.',
-      personaId
-    });
-
-  } catch (error) {
-    console.error('Error al registrar persona:', error);
-
-    // Error por mail duplicado
-    if (error.number === 2627) { // SQL Server error code for unique constraint violation
-      return res.status(409).json({ error: 'El mail ya está en uso.' });
-    }
-
-    res.status(500).json({ error: 'Error interno al registrar persona.' });
-  }
 };
 
 

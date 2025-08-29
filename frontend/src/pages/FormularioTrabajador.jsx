@@ -3,19 +3,18 @@ import { useLocation, useNavigate } from "react-router-dom";
 import axios from "axios";
 
 const FormularioTrabajador = () => {
-  const { state } = useLocation(); // Datos del paso 1
+  const { state } = useLocation();
   const navigate = useNavigate();
 
-  // Si no hay datos del paso 1, redirigimos al inicio
   if (!state) {
     navigate("/registro");
     return null;
   }
 
   const [form, setForm] = useState({
-    ...state, // datos básicos
+    ...state,
     descripcion: "",
-    disponibilidad_horaria: "Disponible",
+    disponibilidad_horaria: "", // Ahora es un string vacío para el input de texto
     oficiosIds: [],
     zonasIds: [],
   });
@@ -25,7 +24,6 @@ const FormularioTrabajador = () => {
   const [error, setError] = useState("");
   const [ok, setOk] = useState("");
 
-  // 🔹 Cargar Zonas y Oficios desde la API
   useEffect(() => {
     const fetchData = async () => {
       try {
@@ -43,16 +41,20 @@ const FormularioTrabajador = () => {
     fetchData();
   }, []);
 
-  const handleChange = (e) => {
-    const { name, value, options } = e.target;
-    if (name === "oficiosIds" || name === "zonasIds") {
-      const selectedOptions = Array.from(options)
-        .filter((option) => option.selected)
-        .map((option) => option.value);
-      setForm((prev) => ({ ...prev, [name]: selectedOptions }));
-    } else {
-      setForm((prev) => ({ ...prev, [name]: value }));
-    }
+  const handleCheckboxChange = (e) => {
+    const { name, value, checked } = e.target;
+    setForm((prev) => {
+      const currentArray = prev[name];
+      const updatedArray = checked
+        ? [...currentArray, parseInt(value)]
+        : currentArray.filter((id) => id !== parseInt(value));
+      return { ...prev, [name]: updatedArray };
+    });
+  };
+
+  const handleTextChange = (e) => {
+    const { name, value } = e.target;
+    setForm((prev) => ({ ...prev, [name]: value }));
   };
 
   const handleSubmit = async (e) => {
@@ -68,13 +70,7 @@ const FormularioTrabajador = () => {
     }
 
     try {
-      const datosParaBackend = {
-        ...form,
-        oficiosIds: form.oficiosIds.join(","), // enviar como string CSV
-        zonasIds: form.zonasIds.join(","),
-      };
-
-      await axios.post("/api/personas/registrar", datosParaBackend);
+      await axios.post("/api/personas/registrar", form);
 
       setOk("Trabajador registrado correctamente.");
       navigate("/login");
@@ -90,77 +86,84 @@ const FormularioTrabajador = () => {
       <h2>Registro de Trabajador</h2>
       {error && <div className="alert alert-danger">{error}</div>}
       {ok && <div className="alert alert-success">{ok}</div>}
-
       <form onSubmit={handleSubmit} className="row g-3">
         <div className="col-12">
-          <label className="form-label">Descripción (Opcional)</label>
+          <label htmlFor="descripcion" className="form-label">
+            Descripción (Opcional)
+          </label>
           <textarea
+            id="descripcion"
             name="descripcion"
             value={form.descripcion}
-            onChange={handleChange}
+            onChange={handleTextChange}
             className="form-control"
           ></textarea>
         </div>
-
         <div className="col-md-6">
-          <label className="form-label">Disponibilidad horaria</label>
-          <select
+          <label htmlFor="disponibilidad_horaria" className="form-label">
+            Disponibilidad horaria
+          </label>
+          <input
+            type="text"
+            id="disponibilidad_horaria"
             name="disponibilidad_horaria"
             value={form.disponibilidad_horaria}
-            onChange={handleChange}
-            className="form-select"
-          >
-            <option value="Disponible">Disponible</option>
-            <option value="No disponible">No disponible</option>
-            <option value="A convenir">A convenir</option>
-          </select>
+            onChange={handleTextChange}
+            className="form-control"
+            placeholder="Ej: Lunes y Miércoles de 8 a 16"
+          />
         </div>
-
         <div className="col-md-6">
           <label className="form-label">Oficios</label>
-          <select
-            name="oficiosIds"
-            value={form.oficiosIds}
-            onChange={handleChange}
-            className="form-select"
-            multiple
-            required
-          >
+          <div className="border p-3 rounded">
             {oficios.length > 0 ? (
               oficios.map((o) => (
-                <option key={o.Id} value={o.Id}>
-                  {o.Nombre}
-                </option>
+                <div className="form-check" key={o.Id}>
+                  <input
+                    className="form-check-input"
+                    type="checkbox"
+                    id={`oficio-${o.Id}`}
+                    value={o.Id}
+                    name="oficiosIds"
+                    checked={form.oficiosIds.includes(o.Id)}
+                    onChange={handleCheckboxChange}
+                  />
+                  <label className="form-check-label" htmlFor={`oficio-${o.Id}`}>
+                    {o.Nombre}
+                  </label>
+                </div>
               ))
             ) : (
-              <option disabled>Cargando oficios...</option>
+              <p>Cargando oficios...</p>
             )}
-          </select>
+          </div>
         </div>
-
         <div className="col-md-6">
           <label className="form-label">Zonas</label>
-          <select
-            name="zonasIds"
-            value={form.zonasIds}
-            onChange={handleChange}
-            className="form-select"
-            multiple
-            required
-          >
+          <div className="border p-3 rounded">
             {zonas.length > 0 ? (
               zonas.map((z) => (
-                <option key={z.Id} value={z.Id}>
-                  {z.Nombre}
-                </option>
+                <div className="form-check" key={z.Id}>
+                  <input
+                    className="form-check-input"
+                    type="checkbox"
+                    id={`zona-${z.Id}`}
+                    value={z.Id}
+                    name="zonasIds"
+                    checked={form.zonasIds.includes(z.Id)}
+                    onChange={handleCheckboxChange}
+                  />
+                  <label className="form-check-label" htmlFor={`zona-${z.Id}`}>
+                    {z.Nombre}
+                  </label>
+                </div>
               ))
             ) : (
-              <option disabled>Cargando zonas...</option>
+              <p>Cargando zonas...</p>
             )}
-          </select>
+          </div>
         </div>
-
-        <div className="col-12">
+        <div className="col-12 mt-3">
           <button type="submit" className="btn btn-primary">
             Registrar Trabajador
           </button>

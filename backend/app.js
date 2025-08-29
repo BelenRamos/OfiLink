@@ -47,7 +47,7 @@ app.use('/api/oficios', oficiosRoutes);
 
 
 // Se ejecuta cada 30 minutos
-cron.schedule('*/30 * * * *', () => {
+cron.schedule('*/2 * * * *', () => {
   console.log("⏳ Revisando contrataciones...");
   updateContratacionesEnCurso();
 });
