@@ -1,32 +1,21 @@
 import React, { useState } from 'react';
 import { apiFetch } from '../utils/apiFetch';
 
-const CardContratacion = ({ contratacion, usuario, onActualizar }) => {
-  // Inicialmente, usa el estado que viene de la base de datos
+const CardContratacion = ({ contratacion, usuario, onActualizar, onResenaPendiente }) => {
   const [estadoActual, setEstadoActual] = useState(contratacion.estado);
 
   const handleAccion = async (accion) => {
     try {
-      // La URL ahora incluye la acción como parte del path
       const url = `/api/contrataciones/${contratacion.id}/${accion}`;
+      await apiFetch(url, { method: 'PUT' });
 
-      await apiFetch(url, {
-        method: 'PUT',
-        // No necesitas enviar un body, la acción ya va en la URL
-        // body: { estado_descripcion: nuevoEstado } <-- Esto ya no es necesario
-      });
-
-      // Si la petición es exitosa, se actualiza el estado en el front-end
-      // Esto es solo para dar una respuesta inmediata, el onActualizar recargará los datos
       let nuevoEstado = '';
-      if (accion === 'aceptar') nuevoEstado = 'Aceptada'; // Cambiar a 'Aceptada'
+      if (accion === 'aceptar') nuevoEstado = 'Aceptada';
       if (accion === 'terminar') nuevoEstado = 'Finalizada';
       if (accion === 'cancelar') nuevoEstado = 'Cancelada';
       setEstadoActual(nuevoEstado);
 
-      // Llama a la función para recargar todas las contrataciones
       onActualizar && onActualizar();
-
     } catch (error) {
       alert(`Error al realizar la acción: ${error.message}`);
     }
@@ -35,16 +24,23 @@ const CardContratacion = ({ contratacion, usuario, onActualizar }) => {
   const esTrabajador = usuario.roles_keys.includes('trabajador');
   const esCliente = usuario.roles_keys.includes('cliente');
 
-  // Lógica para determinar si el botón 'Aceptar' debe ser visible
   const puedeAceptar = esTrabajador && estadoActual === 'Pendiente';
-
-  // Lógica para determinar si el botón 'Terminar' debe ser visible
-  // Nota: El back-end lo cambia de 'Aceptada' a 'En curso' automáticamente
-  // En tu front-end, el botón 'Terminar' debe aparecer cuando el estado es 'En curso'
   const puedeTerminar = esTrabajador && estadoActual === 'En curso';
+  const puedeCancelar =
+    (esTrabajador || esCliente) &&
+    estadoActual !== 'Finalizada' &&
+    estadoActual !== 'Cancelada';
 
-  // Lógica para determinar si el botón 'Cancelar' debe ser visible
-  const puedeCancelar = (esTrabajador || esCliente) && (estadoActual !== 'Finalizada' && estadoActual !== 'Cancelada');
+  // Para la reseña
+  // ✅ Cambia esta línea para verificar el reseña_id
+  const puedeResenar =
+    esCliente &&
+    estadoActual === 'Finalizada' &&
+    !contratacion.reseña_id; 
+
+  // ✅ Y cambia esta línea para verificar el reseña_id
+  const reseñaYaHecha = esCliente && estadoActual === 'Finalizada' && contratacion.reseña_id;
+
 
   return (
     <div className="card mb-3">
@@ -78,10 +74,26 @@ const CardContratacion = ({ contratacion, usuario, onActualizar }) => {
 
           {puedeCancelar && (
             <button
-              className="btn btn-danger"
+              className="btn btn-danger me-2"
               onClick={() => handleAccion('cancelar')}
             >
               Cancelar
+            </button>
+          )}
+
+          {/* Lógica para mostrar el botón de reseña o el estado de reseña */}
+          {puedeResenar && (
+            <button
+              className="btn btn-warning"
+              onClick={() => onResenaPendiente(contratacion)}
+            >
+              Dejar reseña
+            </button>
+          )}
+          
+          {reseñaYaHecha && (
+            <button className="btn btn-success" disabled>
+              Finalizada
             </button>
           )}
         </div>

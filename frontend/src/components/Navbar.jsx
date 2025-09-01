@@ -47,6 +47,9 @@ const Navbar = () => {
                   <li className="nav-item">
                     <Link className="nav-link" to="/mi-perfil">Mi perfil</Link>
                   </li>
+                  <li className="nav-item">
+                    <Link className="nav-link" to="/mis-contrataciones">Mis Contrataciones</Link>
+                  </li>
                 </>
               )}
 
@@ -57,12 +60,6 @@ const Navbar = () => {
                 </li>
               )}
               
-              {/* Mostrar "Administración" para administradores y supervisores */}
-{/*               {esAdminOSupervisor && (
-                <li className="nav-item">
-                  <Link className="nav-link" to="/admin">Administración</Link>
-                </li>
-              )} */}
               
               {/* Cerrar sesión siempre visible para usuarios logueados */}
               <li className="nav-item">

@@ -1,10 +1,12 @@
 import React, { useEffect, useState } from 'react';
 import { apiFetch } from '../utils/apiFetch';
 import CardContratacion from '../components/CardContrataciones';
+import ResenaModal from '../components/ResenaModal';
 
 const Home = () => {
   const [usuario, setUsuario] = useState(null);
   const [contrataciones, setContrataciones] = useState([]);
+  const [contratacionSeleccionada, setContratacionSeleccionada] = useState(null);
 
   const cargarContrataciones = async () => {
     try {
@@ -26,6 +28,14 @@ const Home = () => {
     cargarContrataciones();
   }, []);
 
+  // Función para cerrar el modal
+  const handleCloseModal = () => {
+    setContratacionSeleccionada(null);
+  };
+  
+  // Condición para mostrar el modal
+  const showModal = !!contratacionSeleccionada;
+
   if (!usuario) return <h2 className="mt-4">Debe iniciar sesión</h2>;
 
   return (
@@ -38,8 +48,18 @@ const Home = () => {
           contratacion={c}
           usuario={usuario}
           onActualizar={cargarContrataciones}
+          onResenaPendiente={() => setContratacionSeleccionada(c)}
         />
       ))}
+
+      {/* Modal reseña */}
+      <ResenaModal
+        show={showModal}
+        onHide={handleCloseModal}
+        contratacionId={contratacionSeleccionada?.id}
+        trabajadorId={contratacionSeleccionada?.trabajador_id}
+        onResenaCreada={cargarContrataciones} // Esta línea es la clave para la recarga
+      />
     </div>
   );
 };

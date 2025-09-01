@@ -33,6 +33,60 @@ const verificarToken = (req, res, next) => {
 
 // Obtener contrataciones
 const getContrataciones = async (req, res) => {
+    try {
+        const { usuario } = req; // Obtenido del middleware verificarToken
+        const esTrabajador = usuario.roles_keys?.includes('trabajador');
+        const esCliente = usuario.roles_keys?.includes('cliente');
+
+        if (!esTrabajador && !esCliente) {
+            return res.status(403).json({ error: 'No autorizado' });
+        }
+
+        const pool = await poolPromise;
+        const request = pool.request();
+
+        let query = `
+            SELECT 
+                c.id, 
+                pCliente.nombre AS cliente, 
+                pTrabajador.nombre AS trabajador,
+                ec.descripcion AS estado, 
+                c.fecha_inicio, 
+                c.fecha_fin, 
+                c.descripcion_trabajo,
+                -- ✅ Agregamos el campo reseña_id
+                r.id AS reseña_id
+            FROM Contratacion c
+            JOIN Cliente cl ON c.cliente_id = cl.id
+            JOIN Persona pCliente ON cl.id = pCliente.id
+            JOIN Trabajador t ON c.trabajador_id = t.id
+            JOIN Persona pTrabajador ON t.id = pTrabajador.id
+            JOIN EstadosContratacion ec ON c.estado_id = ec.id
+            -- ✅ Hacemos un LEFT JOIN para incluir la información de la reseña
+            LEFT JOIN Reseña r ON c.id = r.contratacion_id
+        `;
+
+        // Filtrar según rol usando consultas parametrizadas
+        if (esCliente) {
+            query += ` WHERE c.cliente_id = @idUsuario`;
+            request.input('idUsuario', sql.Int, usuario.id);
+        } else if (esTrabajador) {
+            query += ` WHERE c.trabajador_id = @idUsuario`;
+            request.input('idUsuario', sql.Int, usuario.id);
+        }
+
+        query += ` ORDER BY c.id DESC`;
+        const result = await request.query(query);
+
+        res.json(result.recordset);
+    } catch (error) {
+        console.error('Error al obtener contrataciones:', error);
+        res.status(500).json({ error: 'Error al obtener contrataciones' });
+    }
+};
+
+
+/* const getContrataciones = async (req, res) => {
   try {
     const { usuario } = req; // Obtenido del middleware verificarToken
     const esTrabajador = usuario.roles_keys?.includes('trabajador');
@@ -73,7 +127,8 @@ const getContrataciones = async (req, res) => {
     console.error('Error al obtener contrataciones:', error);
     res.status(500).json({ error: 'Error al obtener contrataciones' });
   }
-};
+}; */
+
 
 
 // Crear nueva contratación

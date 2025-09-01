@@ -1,11 +1,12 @@
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import 'bootstrap/dist/css/bootstrap.min.css';
 
+//Pages y components
 import Navbar from './components/Navbar';
 import MenuIngreso from './pages/MenuIngreso';
 import Buscar from './pages/Buscar';
 import Login from './pages/Login';
-import Registro from './pages/Registro';
 import PerfilTrabajador from './pages/PerfilTrabajador';
 import MiPerfil from './pages/MiPerfil';
 import DashboardLayout from './pages/admin/DashboardLayout';
@@ -14,6 +15,7 @@ import PrivateRoute from './components/PrivateRoute';
 import FormularioRegistro from './pages/FormularioRegistro';
 import FormularioTrabajador from './pages/FormularioTrabajador';
 import CambiarPassword from './pages/CambiarPassword';
+import MisContrataciones from './pages/MisContrataciones';
 
 function App() {
   const usuario = JSON.parse(localStorage.getItem('usuarioActual'));
@@ -47,6 +49,11 @@ function App() {
         <Route path="/mi-perfil" element={
           <PrivateRoute>
             <MiPerfil />
+          </PrivateRoute>
+        } />
+        <Route path="/mis-contrataciones" element={
+          <PrivateRoute>
+            <MisContrataciones />
           </PrivateRoute>
         } />
         <Route path="/admin/*" element={
