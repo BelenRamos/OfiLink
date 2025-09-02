@@ -1,4 +1,3 @@
-// routes/permisos.js
 const express = require('express');
 const router = express.Router();
 const { getPermisos, createPermiso } = require('../../controllers/permisosController');

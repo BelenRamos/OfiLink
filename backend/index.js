@@ -1,7 +1,7 @@
 const express = require('express');
 const app = express();
 
-const trabajadoresRouter = require('./routes/trabajadores'); // Ajusta la ruta si hace falta
+const trabajadoresRouter = require('./routes/trabajadores');
 
 app.use('/api/trabajadores', trabajadoresRouter);
 

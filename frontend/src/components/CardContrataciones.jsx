@@ -32,13 +32,11 @@ const CardContratacion = ({ contratacion, usuario, onActualizar, onResenaPendien
     estadoActual !== 'Cancelada';
 
   // Para la reseña
-  // ✅ Cambia esta línea para verificar el reseña_id
   const puedeResenar =
     esCliente &&
     estadoActual === 'Finalizada' &&
     !contratacion.reseña_id; 
 
-  // ✅ Y cambia esta línea para verificar el reseña_id
   const reseñaYaHecha = esCliente && estadoActual === 'Finalizada' && contratacion.reseña_id;
 
 
@@ -81,7 +79,6 @@ const CardContratacion = ({ contratacion, usuario, onActualizar, onResenaPendien
             </button>
           )}
 
-          {/* Lógica para mostrar el botón de reseña o el estado de reseña */}
           {puedeResenar && (
             <button
               className="btn btn-warning"

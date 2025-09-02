@@ -4,7 +4,6 @@ const jwt = require('jsonwebtoken');
 require('dotenv').config();
 const SECRET_KEY = process.env.SECRET_KEY;
 
-// Definir los estados de la contratación para mayor claridad y evitar "números mágicos"
 const ESTADOS = {
   PENDIENTE: 1,
   ACEPTADA: 2,
@@ -23,7 +22,7 @@ const verificarToken = (req, res, next) => {
     if (!token) return res.status(401).json({ error: 'Token inválido' });
 
     const usuarioActual = jwt.verify(token, SECRET_KEY);
-    req.usuario = usuarioActual; // Almacenar el usuario en el objeto de la petición
+    req.usuario = usuarioActual; 
     next();
   } catch (error) {
     console.error('Error de token:', error);
@@ -34,7 +33,7 @@ const verificarToken = (req, res, next) => {
 // Obtener contrataciones
 const getContrataciones = async (req, res) => {
     try {
-        const { usuario } = req; // Obtenido del middleware verificarToken
+        const { usuario } = req; // Obtenido del middleware --> verificarToken
         const esTrabajador = usuario.roles_keys?.includes('trabajador');
         const esCliente = usuario.roles_keys?.includes('cliente');
 
@@ -54,7 +53,6 @@ const getContrataciones = async (req, res) => {
                 c.fecha_inicio, 
                 c.fecha_fin, 
                 c.descripcion_trabajo,
-                -- ✅ Agregamos el campo reseña_id
                 r.id AS reseña_id
             FROM Contratacion c
             JOIN Cliente cl ON c.cliente_id = cl.id
@@ -62,7 +60,6 @@ const getContrataciones = async (req, res) => {
             JOIN Trabajador t ON c.trabajador_id = t.id
             JOIN Persona pTrabajador ON t.id = pTrabajador.id
             JOIN EstadosContratacion ec ON c.estado_id = ec.id
-            -- ✅ Hacemos un LEFT JOIN para incluir la información de la reseña
             LEFT JOIN Reseña r ON c.id = r.contratacion_id
         `;
 
@@ -149,7 +146,7 @@ const createContratacion = async (req, res) => {
     await pool.request()
       .input('cliente_id', sql.Int, cliente_id)
       .input('trabajador_id', sql.Int, trabajador_id)
-      .input('estado_id', sql.Int, ESTADOS.PENDIENTE) // Usar la constante
+      .input('estado_id', sql.Int, ESTADOS.PENDIENTE) 
       .input('descripcion_trabajo', sql.VarChar(MAX), descripcion_trabajo)
       .input('fecha_inicio', sql.Date, fecha_inicio || new Date())
       .query(`
@@ -210,7 +207,7 @@ const manejarAccionContratacion = async (req, res) => {
         break;
 
       case 'cancelar':
-        // Puede ser cancelada por el cliente que la creó o por el trabajador asignado
+        // Puede ser cancelada por el cliente que la creó o por el trabajador asignado --> Restricciones?
         if (!((rolKeys.includes('cliente') && usuario.id === c.cliente_id) || (rolKeys.includes('trabajador') && usuario.id === c.trabajador_id))) {
           return res.status(403).json({ error: 'No puedes cancelar esta contratación' });
         }
@@ -258,9 +255,9 @@ const updateContratacionesEnCurso = async () => {
         WHERE estado_id = @estadoAceptada
           AND CAST(fecha_inicio AS DATE) <= CAST(GETDATE() AS DATE)
       `);
-    console.log("✅ Contrataciones actualizadas a 'En curso'");
+    console.log("Contrataciones actualizadas a 'En curso'");
   } catch (error) {
-    console.error("❌ Error al actualizar contrataciones en curso:", error);
+    console.error("Error al actualizar contrataciones en curso:", error);
   }
 };
 

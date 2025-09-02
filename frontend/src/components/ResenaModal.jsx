@@ -2,11 +2,8 @@ import React, { useState } from "react";
 import { Modal, Button } from "react-bootstrap";
 import ResenaForm from "./FormularioResena";
 
-// ¡Añadimos onResenaCreada como prop!
 const ResenaModal = ({ show, onHide, contratacionId, trabajadorId, onResenaCreada }) => {
   const [loading, setLoading] = useState(false);
-
-  // Aseguramos que onHide sea una función para evitar el error
   const handleHide = typeof onHide === 'function' ? onHide : () => {};
 
   const handleGuardar = async (formData) => {
@@ -29,7 +26,6 @@ const ResenaModal = ({ show, onHide, contratacionId, trabajadorId, onResenaCread
 
       alert("Reseña guardada con éxito");
       handleHide(); // Cierra el modal
-      // ¡Ahora, notificamos al componente padre que la reseña fue creada!
       if (onResenaCreada) {
         onResenaCreada();
       }

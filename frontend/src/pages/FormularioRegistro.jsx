@@ -81,13 +81,12 @@ const FormularioRegistro = () => {
   };
 
   return (
-    // Solución: envolver todo en un solo <div>
+  
     <div className="container mt-4">
       <h2>Registro</h2>
       {error && <div className="alert alert-danger">{error}</div>}
       {ok && <div className="alert alert-success">{ok}</div>}
       <form onSubmit={handleSubmit} className="row g-3">
-        {/* Resto del formulario... */}
         <div className="col-12">
           <label className="form-label">Nombre</label>
           <input

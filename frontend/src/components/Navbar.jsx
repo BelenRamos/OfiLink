@@ -23,7 +23,6 @@ const Navbar = () => {
 
   return (
     <nav className="navbar navbar-expand-lg navbar-custom px-4 navbar-reducido">
-      {/* Enlace condicional para el logo */}
       {esAdminOSupervisor ? (
         <span className="navbar-brand d-flex align-items-center">
           <img src={logo} alt="OfiLink logo" className="logo-img" />
@@ -38,7 +37,7 @@ const Navbar = () => {
         <ul className="navbar-nav ms-auto">
           {usuario ? (
             <>
-              {/* Mostrar "Buscar" y "Mi perfil" solo para clientes */}
+              
               {tieneRol('cliente') && (
                 <>
                   <li className="nav-item">
@@ -53,15 +52,12 @@ const Navbar = () => {
                 </>
               )}
 
-              {/* Mostrar "Mi perfil" para trabajadores */}
               {tieneRol('trabajador') && (
                 <li className="nav-item">
                   <Link className="nav-link" to="/mi-perfil">Mi perfil</Link>
                 </li>
               )}
               
-              
-              {/* Cerrar sesión siempre visible para usuarios logueados */}
               <li className="nav-item">
                 <button className="nav-link btn btn-link logout-btn" onClick={logout}>
                   Cerrar sesión

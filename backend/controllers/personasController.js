@@ -1,7 +1,6 @@
 const { poolPromise, sql } = require('../db');
 const bcrypt = require('bcrypt');
 
-// GET /api/personas/resumen
 const getResumenPersonas = async (req, res) => {
   try {
     const pool = await poolPromise;
@@ -79,7 +78,6 @@ const _insertarOficiosYZonas = async (pool, trabajadorId, oficiosIds, zonasIds) 
     }
 };
 
-// POST /api/personas/registrar
 const registrarPersona = async (req, res) => {
     const {
         nombre,
@@ -101,10 +99,6 @@ const registrarPersona = async (req, res) => {
         const pool = await poolPromise;
         transaction = new sql.Transaction(pool);
         await transaction.begin();
-
-        // -----------------------------
-        // 1. Validaciones mejoradas y completas
-        // -----------------------------
 
         // Validar campos obligatorios
         if (!nombre || !contraseña || !mail || !fecha_nacimiento || !tipo_usuario) {
@@ -140,9 +134,7 @@ const registrarPersona = async (req, res) => {
             return res.status(400).json({ error: 'El teléfono debe tener al menos 9 números y solo dígitos.' });
         }
 
-        // -----------------------------
-        // 2. Hashear contraseña y asignar GrupoId
-        // -----------------------------
+        // Hashear contraseña y asignar GrupoId
         const hashedPassword = await bcrypt.hash(contraseña, 10);
         let grupoId;
         if (tipo_usuario === 'cliente') {
@@ -153,9 +145,7 @@ const registrarPersona = async (req, res) => {
             return res.status(400).json({ error: 'Tipo de usuario inválido.' });
         }
 
-        // -----------------------------
-        // 3. Registrar persona y trabajador/cliente en la base de datos
-        // -----------------------------
+
         const request = new sql.Request(transaction);
 
         request.input('nombre', sql.VarChar, nombre);
@@ -179,18 +169,14 @@ const registrarPersona = async (req, res) => {
             return res.status(400).json({ error: 'No se pudo registrar el usuario. El SP no devolvió un ID.' });
         }
         
-        // -----------------------------
-        // 4. Insertar en las tablas de relación si es trabajador
-        // -----------------------------
+
+        // Insertar en las tablas de relación si es trabajador
         if (tipo_usuario === 'trabajador') {
             await _insertarOficiosYZonas(transaction, personaId, oficiosIds, zonasIds);
         }
 
         await transaction.commit();
 
-        // -----------------------------
-        // 5. Respuesta
-        // -----------------------------
         res.status(201).json({
             message: 'Usuario registrado correctamente.',
             personaId
@@ -204,7 +190,7 @@ const registrarPersona = async (req, res) => {
         }
 
         // Error por mail duplicado
-        if (error.number === 2627) { // SQL Server error code for unique constraint violation
+        if (error.number === 2627) { 
             return res.status(409).json({ error: 'El mail ya está en uso.' });
         }
 

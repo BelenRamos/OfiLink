@@ -1,7 +1,5 @@
-// controllers/permisosController.js
 const { poolPromise, sql } = require('../db');
 
-// GET /api/permisos
 const getPermisos = async (req, res) => {
   try {
     const pool = await poolPromise;
@@ -18,7 +16,6 @@ const getPermisos = async (req, res) => {
   }
 };
 
-// POST /api/permisos
 const createPermiso = async (req, res) => {
   const { nombre, descripcion, padreId } = req.body;
   if (!nombre) return res.status(400).json({ error: 'El nombre es obligatorio' });

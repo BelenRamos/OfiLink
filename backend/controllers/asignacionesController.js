@@ -1,4 +1,3 @@
-// controllers/asignacionesController.js
 const { poolPromise, sql } = require('../db');
 
 const getAsignaciones = async (req, res) => {

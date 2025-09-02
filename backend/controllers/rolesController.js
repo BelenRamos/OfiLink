@@ -1,6 +1,5 @@
 const { poolPromise, sql } = require('../db');
 
-// GET /api/roles
 const getRoles = async (req, res) => {
   try {
     const pool = await poolPromise;
@@ -14,7 +13,6 @@ const getRoles = async (req, res) => {
   }
 };
 
-// POST /api/roles
 const createRol = async (req, res) => {
   const { nombre } = req.body;
   if (!nombre) {

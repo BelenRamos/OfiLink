@@ -16,15 +16,15 @@ useEffect(() => {
 
       const res = await fetch(`/api/trabajadores?${queryParams.toString()}`);
       const data = await res.json();
-      console.log('✅ Trabajadores filtrados:', data);
+      console.log('Trabajadores filtrados:', data);
       setTrabajadores(data);
     } catch (error) {
-      console.error('❌ Error al obtener trabajadores:', error);
+      console.error('Error al obtener trabajadores:', error);
     }
   };
 
   fetchTrabajadores();
-}, [oficio, zona]); // ✅ se vuelve a ejecutar cada vez que cambian
+}, [oficio, zona]); 
 
   return (
     <div className="container mt-4">

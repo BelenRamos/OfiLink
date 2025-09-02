@@ -35,7 +35,6 @@ const Login = () => {
 
       localStorage.setItem('usuarioActual', JSON.stringify(usuarioNormalizado));
 
-      // 👇 LÓGICA DE REDIRECCIÓN AÑADIDA 👇
       if (usuarioNormalizado.roles_keys.includes('administrador') || usuarioNormalizado.roles_keys.includes('supervisor')) {
         navigate('/admin');
       } else {

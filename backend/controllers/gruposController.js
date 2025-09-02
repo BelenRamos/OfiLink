@@ -1,4 +1,3 @@
-// controllers/gruposController.js
 const { poolPromise, sql } = require('../db');
 
 const getGrupos = async (req, res) => {

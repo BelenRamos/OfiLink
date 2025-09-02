@@ -10,7 +10,7 @@ const login = async (req, res) => {
   try {
     const pool = await poolPromise;
 
-    // Traemos el usuario por mail (con la contraseña hasheada)
+    // Usuario por mail (con la contraseña hasheada)
     const result = await pool.request()
       .input('usuario', sql.VarChar, usuario)
       .query(`
@@ -43,11 +43,11 @@ const login = async (req, res) => {
       return res.status(401).json({ error: 'Credenciales inválidas' });
     }
 
-    // Preparamos roles
+    // Roles?
     usuarioEncontrado.roles = usuarioEncontrado.roles ? usuarioEncontrado.roles.split(',') : [];
     usuarioEncontrado.roles_keys = usuarioEncontrado.roles_keys ? usuarioEncontrado.roles_keys.split(',') : [];
 
-    // ✅ Generar JWT
+    // Generar JWT
     const token = jwt.sign(
       {
         id: usuarioEncontrado.id,
@@ -106,7 +106,7 @@ const login = async (req, res) => {
     usuarioEncontrado.roles = usuarioEncontrado.roles ? usuarioEncontrado.roles.split(',') : [];
     usuarioEncontrado.roles_keys = usuarioEncontrado.roles_keys ? usuarioEncontrado.roles_keys.split(',') : [];
 
-    // ✅ Generar JWT
+    // Generar JWT
     const token = jwt.sign(
       {
         id: usuarioEncontrado.id,
@@ -126,15 +126,13 @@ const login = async (req, res) => {
   }
 }; */
 
-// ... (código existente)
-
 const cambiarPassword = async (req, res) => {
   const { email, oldPassword, newPassword } = req.body;
 
   try {
     const pool = await poolPromise;
 
-    // Paso 1: Obtener el usuario y su contraseña hasheada
+    // Obtener el usuario y su contraseña hasheada
     const result = await pool.request()
       .input('email', sql.VarChar, email)
       .query(`SELECT id, contraseña FROM Persona WHERE mail = @email`);
@@ -145,16 +143,16 @@ const cambiarPassword = async (req, res) => {
 
     const usuarioEncontrado = result.recordset[0];
 
-    // Paso 2: Comparar la contraseña actual con el hash almacenado
+    // Comparar la contraseña actual con el hash almacenado
     const passwordValida = await bcrypt.compare(oldPassword, usuarioEncontrado.contraseña);
     if (!passwordValida) {
       return res.status(401).json({ mensaje: 'Contraseña actual incorrecta.' });
     }
 
-    // Paso 3: Hashear la nueva contraseña
+    // Hashear la nueva contraseña
     const nuevaContraseñaHash = await bcrypt.hash(newPassword, 10);
 
-    // Paso 4: Actualizar la contraseña en la base de datos
+    // Actualizar la contraseña en la base de datos
     await pool.request()
       .input('id', sql.Int, usuarioEncontrado.id)
       .input('nuevaContraseñaHash', sql.VarChar, nuevaContraseñaHash)

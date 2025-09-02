@@ -28,7 +28,7 @@ const Home = () => {
 
   if (!usuario) return <h2 className="mt-4">Debe iniciar sesión</h2>;
 
-  // Helpers para roles
+
   const tieneRol = (...roles) => roles.some(r => usuario?.roles_keys?.includes(r));
 
   // Filtramos según el rol
@@ -36,7 +36,6 @@ const Home = () => {
   if (tieneRol('cliente')) {
     contratacionesMostradas = contrataciones.filter(c => c.estado === 'En curso');
   }
-  // Para trabajadores dejamos todo igual (no filtramos)
 
   return (
     <div className="container mt-4">

@@ -38,7 +38,6 @@ const crearResena = async (req, res) => {
   try {
     const pool = await poolPromise;
 
-    // 1. Verificar la contratación y obtener el ID del trabajador
     const resultContratacion = await pool.request()
       .input('contratacionId', sql.Int, contratacionId)
       .query(`
@@ -69,7 +68,7 @@ const crearResena = async (req, res) => {
       return res.status(400).json({ error: 'Ya existe una reseña para esta contratación' });
     }
 
-    // 2. Insertar la nueva reseña
+    // Nueva reseña
     await pool.request()
       .input('comentario', sql.VarChar(sql.MAX), comentario || '')
       .input('puntuacion', sql.Int, puntuacion)
@@ -80,7 +79,7 @@ const crearResena = async (req, res) => {
         VALUES (@comentario, @puntuacion, @fecha, @contratacionId)
       `);
 
-    // 3. Calcular el nuevo promedio de calificación del trabajador
+    // Calcular promedio de calificación del trabajador
     const resultPromedio = await pool.request()
       .input('trabajadorId', sql.Int, trabajador_id)
       .query(`
@@ -92,7 +91,6 @@ const crearResena = async (req, res) => {
 
     const nuevoPromedio = resultPromedio.recordset[0].promedio;
     
-    // 4. Actualizar la calificación promedio del trabajador
     await pool.request()
       .input('trabajadorId', sql.Int, trabajador_id)
       .input('promedio', sql.Decimal(4, 2), nuevoPromedio)

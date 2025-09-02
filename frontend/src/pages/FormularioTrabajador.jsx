@@ -14,7 +14,7 @@ const FormularioTrabajador = () => {
   const [form, setForm] = useState({
     ...state,
     descripcion: "",
-    disponibilidad_horaria: "", // Ahora es un string vacío para el input de texto
+    disponibilidad_horaria: "",
     oficiosIds: [],
     zonasIds: [],
   });
