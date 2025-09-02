@@ -22,6 +22,7 @@ const FiltroTrabajadores = ({ oficio, setOficio, zona, setZona }) => {
         <option value="Zona Norte">Zona Norte</option>
         <option value="Zona Sur">Zona Sur</option>
         <option value="Zona Centro">Zona Centro</option>
+        <option value="Zona Este">Zona Este</option>
         <option value="Zona Oeste">Zona Oeste</option>
       </select>
     </div>

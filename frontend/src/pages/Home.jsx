@@ -1,12 +1,10 @@
 import React, { useEffect, useState } from 'react';
 import { apiFetch } from '../utils/apiFetch';
 import CardContratacion from '../components/CardContrataciones';
-import ResenaModal from '../components/ResenaModal';
 
 const Home = () => {
   const [usuario, setUsuario] = useState(null);
   const [contrataciones, setContrataciones] = useState([]);
-  const [contratacionSeleccionada, setContratacionSeleccionada] = useState(null);
 
   const cargarContrataciones = async () => {
     try {
@@ -28,38 +26,35 @@ const Home = () => {
     cargarContrataciones();
   }, []);
 
-  // Función para cerrar el modal
-  const handleCloseModal = () => {
-    setContratacionSeleccionada(null);
-  };
-  
-  // Condición para mostrar el modal
-  const showModal = !!contratacionSeleccionada;
-
   if (!usuario) return <h2 className="mt-4">Debe iniciar sesión</h2>;
+
+  // Helpers para roles
+  const tieneRol = (...roles) => roles.some(r => usuario?.roles_keys?.includes(r));
+
+  // Filtramos según el rol
+  let contratacionesMostradas = contrataciones;
+  if (tieneRol('cliente')) {
+    contratacionesMostradas = contrataciones.filter(c => c.estado === 'En curso');
+  }
+  // Para trabajadores dejamos todo igual (no filtramos)
 
   return (
     <div className="container mt-4">
       <h2>Bienvenido, {usuario.nombre}</h2>
-      {contrataciones.length === 0 && <p>No hay contrataciones aún.</p>}
-      {contrataciones.map(c => (
+
+      {contratacionesMostradas.length === 0 && (
+        <p>¡No tienes contrataciones en curso!</p>
+        
+      )}
+
+      {contratacionesMostradas.map(c => (
         <CardContratacion
           key={c.id}
           contratacion={c}
           usuario={usuario}
           onActualizar={cargarContrataciones}
-          onResenaPendiente={() => setContratacionSeleccionada(c)}
         />
       ))}
-
-      {/* Modal reseña */}
-      <ResenaModal
-        show={showModal}
-        onHide={handleCloseModal}
-        contratacionId={contratacionSeleccionada?.id}
-        trabajadorId={contratacionSeleccionada?.trabajador_id}
-        onResenaCreada={cargarContrataciones} // Esta línea es la clave para la recarga
-      />
     </div>
   );
 };

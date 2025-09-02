@@ -77,7 +77,7 @@ const Login = () => {
           ¿No tienes una cuenta? Regístrate
         </p>
         <p className="text-primary mt-2" style={{ cursor: 'pointer', textDecoration: 'underline' }} onClick={() => navigate('/cambiarPassword')}>
-          ¿No recuerdas tu contraseña? Has click aquí
+          ¿Quieres cambiar tu contraseña? Has click aquí
         </p>
       </div>
     </div>

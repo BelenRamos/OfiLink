@@ -1,89 +1,63 @@
-import React, { useState, useEffect } from 'react';
-import { Container, Alert, Spinner } from 'react-bootstrap';
-import { apiFetch } from '../utils/apiFetch'; // Asegúrate de la ruta correcta
+import React, { useEffect, useState } from 'react';
+import { apiFetch } from '../utils/apiFetch';
 import CardContratacion from '../components/CardContrataciones';
 import ResenaModal from '../components/ResenaModal';
 
-const MisContrataciones = ({ usuario }) => {
-  // Estado para la lista de contrataciones
+const MisContrataciones = () => {
+  const [usuario, setUsuario] = useState(null);
   const [contrataciones, setContrataciones] = useState([]);
-  // Estados para controlar el modal
-  const [showResenaModal, setShowResenaModal] = useState(false);
-  const [selectedContratacion, setSelectedContratacion] = useState(null);
-  // Estados para la carga y errores
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
+  const [contratacionSeleccionada, setContratacionSeleccionada] = useState(null);
 
-  // Función para obtener las contrataciones desde la API
-  const fetchContrataciones = async () => {
+  const cargarContrataciones = async () => {
     try {
-      setLoading(true);
-      const url = `/api/contrataciones/usuario/${usuario.id}`;
-      const data = await apiFetch(url);
+      const data = await apiFetch('/api/contrataciones');
       setContrataciones(data);
-    } catch (err) {
-      console.error("Error al obtener las contrataciones:", err);
-      setError("No se pudieron cargar las contrataciones.");
-    } finally {
-      setLoading(false);
+    } catch (error) {
+      console.error(error);
+      alert('Error al cargar contrataciones');
     }
   };
 
-  // Se ejecuta una vez al cargar el componente para obtener los datos
   useEffect(() => {
-    fetchContrataciones();
-  }, [usuario.id]);
+    const usuarioGuardado = localStorage.getItem('usuarioActual');
+    if (!usuarioGuardado) return;
 
-  // Funciones para abrir y cerrar el modal
-  const handleOpenResenaModal = (contratacion) => {
-    setSelectedContratacion(contratacion);
-    setShowResenaModal(true);
+    const parsedUsuario = JSON.parse(usuarioGuardado);
+    setUsuario(parsedUsuario);
+
+    cargarContrataciones();
+  }, []);
+
+  const handleCloseModal = () => {
+    setContratacionSeleccionada(null);
   };
 
-  const handleCloseResenaModal = () => {
-    setShowResenaModal(false);
-    setSelectedContratacion(null);
-  };
+  const showModal = !!contratacionSeleccionada;
 
-  if (loading) {
-    return (
-      <Container className="my-5 text-center">
-        <Spinner animation="border" />
-        <p>Cargando contrataciones...</p>
-      </Container>
-    );
-  }
-
-  if (error) {
-    return <Container className="my-5"><Alert variant="danger">{error}</Alert></Container>;
-  }
+  if (!usuario) return <h2 className="mt-4">Debe iniciar sesión</h2>;
 
   return (
-    <Container className="my-4">
+    <div className="container mt-4">
       <h2>Mis Contrataciones</h2>
-      {contrataciones.length > 0 ? (
-        contrataciones.map((contratacion) => (
-          <CardContratacion
-            key={contratacion.id}
-            contratacion={contratacion}
-            usuario={usuario}
-            onActualizar={fetchContrataciones} // Para recargar la lista si se actualiza algo
-            onResenaPendiente={() => handleOpenResenaModal(contratacion)}
-          />
-        ))
-      ) : (
-        <p>No tienes contrataciones aún.</p>
-      )}
-
-      {selectedContratacion && (
-        <ResenaModal
-          show={showResenaModal}
-          onHide={handleCloseResenaModal}
-          contratacionId={selectedContratacion.id}
-          trabajadorId={selectedContratacion.trabajador_id} // Asume que tienes este ID
+      {contrataciones.length === 0 && <p>No hay contrataciones aún.</p>}
+      {contrataciones.map(c => (
+        <CardContratacion
+          key={c.id}
+          contratacion={c}
+          usuario={usuario}
+          onActualizar={cargarContrataciones}
+          onResenaPendiente={() => setContratacionSeleccionada(c)}
         />
-      )}
-    </Container>
+      ))}
+
+      <ResenaModal
+        show={showModal}
+        onHide={handleCloseModal}
+        contratacionId={contratacionSeleccionada?.id}
+        trabajadorId={contratacionSeleccionada?.trabajador_id}
+        onResenaCreada={cargarContrataciones}
+      />
+    </div>
   );
 };
 
