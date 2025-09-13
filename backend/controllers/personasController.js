@@ -1,6 +1,10 @@
 const { poolPromise, sql } = require('../db');
 const bcrypt = require('bcrypt');
+const crypto = require('crypto');
 
+
+
+///Este revisar --> No se si se sigue usando
 const getResumenPersonas = async (req, res) => {
   try {
     const pool = await poolPromise;
@@ -22,32 +26,83 @@ const getResumenPersonas = async (req, res) => {
   }
 };
 
-const getPersonasReporte = async (req, res) => {
+
+const getPersonas = async (req, res) => {
   try {
     const pool = await poolPromise;
-
     const result = await pool.request().query(`
+      SELECT 
+        id,
+        nombre,
+        mail,
+        tipo_usuario AS tipo
+      FROM Persona
+      ORDER BY nombre
+    `);
+
+    res.json(result.recordset);
+  } catch (error) {
+    console.error('Error al obtener personas:', error);
+    res.status(500).json({ error: 'Error al obtener personas' });
+  }
+};
+
+const getPersonasReporte = async (req, res) => {
+  try {
+    const { rol } = req.query; // Obtiene el valor del filtro de la URL
+    const pool = await poolPromise;
+
+    // Base de la consulta, selecciona ID, nombre y determina el rol con CASE
+    let query = `
       SELECT 
         p.id AS id,
         p.nombre AS nombre,
-        o.nombre AS oficio,
-        z.nombre AS zona
+        CASE p.GrupoId
+          WHEN 1 THEN 'administrador'
+          WHEN 2 THEN 'supervisor'
+          WHEN 3 THEN 'cliente'
+          WHEN 4 THEN 'trabajador'
+          ELSE 'desconocido'
+        END AS rol
       FROM Persona p
-      LEFT JOIN Trabajador t ON t.id = p.id
-      LEFT JOIN Trabajador_Oficio tofi ON tofi.trabajador_id = t.id
-      LEFT JOIN Oficio o ON o.id = tofi.oficio_id
-      LEFT JOIN Trabajador_Zona tz ON tz.trabajador_id = t.id
-      LEFT JOIN Zona z ON z.id = tz.zona_id
-      ORDER BY p.nombre
-    `);
+    `;
 
+    // Determina el GrupoId para el filtro, si es que se ha solicitado uno
+    let grupoIdFiltro;
+    if (rol && rol !== 'todos') {
+      switch (rol) {
+        case 'administrador':
+          grupoIdFiltro = 1;
+          break;
+        case 'supervisor':
+          grupoIdFiltro = 2;
+          break;
+        case 'cliente':
+          grupoIdFiltro = 3;
+          break;
+        case 'trabajador':
+          grupoIdFiltro = 4;
+          break;
+        default:
+          grupoIdFiltro = null;
+      }
+    }
+
+    // Agrega la cláusula WHERE si se necesita filtrar
+    if (grupoIdFiltro) {
+      query += ` WHERE p.GrupoId = ${grupoIdFiltro}`;
+    }
+
+    // Agrega el ordenamiento al final
+    query += ` ORDER BY p.nombre`;
+
+    const result = await pool.request().query(query);
     res.json(result.recordset);
   } catch (error) {
     console.error('Error al obtener el reporte de personas:', error);
     res.status(500).json({ error: 'Error al obtener el reporte de personas' });
   }
 };
-
 
 ////Para nueva persona
 // Función auxiliar para insertar oficios y zonas en las tablas de relación
@@ -199,8 +254,41 @@ const registrarPersona = async (req, res) => {
 };
 
 
+//Resetear Contraseña -- Solo por el admin
+const resetPassword = async (req, res) => {
+  const { id } = req.params;
+
+  try {
+    const pool = await poolPromise;
+
+    // Generar nueva contraseña aleatoria (8 caracteres seguros)
+    const nuevaPassword = crypto.randomBytes(4).toString('hex'); 
+
+    // Hashear la contraseña
+    const hashedPassword = await bcrypt.hash(nuevaPassword, 10);
+
+    await pool.request()
+      .input('id', sql.Int, id)
+      .input('contraseña', sql.VarChar, hashedPassword)
+      .query(`UPDATE Persona SET contraseña = @contraseña WHERE id = @id`);
+
+    res.json({
+      message: 'Contraseña reseteada con éxito.',
+      nuevaPassword // ⚠️ Se devuelve solo al admin, no se guarda en ningún lado sin hash
+    });
+  } catch (error) {
+    console.error('Error al resetear contraseña:', error);
+    res.status(500).json({ error: 'Error al resetear contraseña' });
+  }
+};
+
+
+
+
 module.exports = {
   getResumenPersonas,
   getPersonasReporte,
-  registrarPersona
+  registrarPersona,
+  getPersonas,
+  resetPassword
 };

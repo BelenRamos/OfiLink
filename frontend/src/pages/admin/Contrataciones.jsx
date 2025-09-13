@@ -1,32 +1,53 @@
-import React, { useState } from 'react';
-
-const contratacionesMock = [
-  { id: 1, cliente: 'Laura G.', trabajador: 'Pedro D.', oficio: 'Electricista', estado: 'aceptada', fecha: '2025-05-01' },
-  { id: 2, cliente: 'Carlos R.', trabajador: 'Marta C.', oficio: 'Plomera', estado: 'en curso', fecha: '2025-05-10' },
-  { id: 3, cliente: 'Lucía B.', trabajador: 'Luciano T.', oficio: 'Carpintero', estado: 'terminada', fecha: '2025-04-15' },
-];
+import React, { useState, useEffect } from "react";
+import { apiFetch } from "../../utils/apiFetch";
 
 const Contrataciones = () => {
-  const [filtroEstado, setFiltroEstado] = useState('');
+  const [contrataciones, setContrataciones] = useState([]);
+  const [filtroEstado, setFiltroEstado] = useState("");
+  const [error, setError] = useState("");
 
-  const filtradas = filtroEstado
-    ? contratacionesMock.filter(c => c.estado === filtroEstado)
-    : contratacionesMock;
+  const fetchContrataciones = async () => {
+    try {
+      const data = await apiFetch("/api/contrataciones", {
+        method: "GET",
+      });
+      setContrataciones(data);
+    } catch (err) {
+      console.error("Error al obtener contrataciones:", err);
+      setError(err.message);
+    }
+  };
+
+  useEffect(() => {
+    fetchContrataciones();
+  }, []);
+
+
+
+    const filtradas = filtroEstado
+  ? contrataciones.filter(
+      (c) => c.estado?.trim().toLowerCase() === filtroEstado.trim().toLowerCase()
+    )
+  : contrataciones;
+
 
   return (
     <div>
       <h3>Contrataciones</h3>
+      {error && <div className="text-danger">{error}</div>}
+
       <div className="mb-3 d-flex gap-3 align-items-center">
         <label>Filtrar por estado:</label>
         <select
           className="form-select w-auto"
           value={filtroEstado}
-          onChange={e => setFiltroEstado(e.target.value)}
+          onChange={(e) => setFiltroEstado(e.target.value)}
         >
           <option value="">Todas</option>
-          <option value="aceptada">Aceptada</option>
+          <option value="Aceptada">Aceptada</option>
           <option value="en curso">En curso</option>
-          <option value="terminada">Terminada</option>
+          <option value="finalizada">Finalizada</option>
+          <option value="cancelada">Cancelada</option>
         </select>
       </div>
 
@@ -36,20 +57,20 @@ const Contrataciones = () => {
             <th>ID</th>
             <th>Cliente</th>
             <th>Trabajador</th>
-            <th>Oficio</th>
             <th>Estado</th>
-            <th>Fecha</th>
+            <th>Fecha inicio</th>
+            <th>Fecha fin</th>
           </tr>
         </thead>
         <tbody>
-          {filtradas.map(c => (
+          {filtradas.map((c) => (
             <tr key={c.id}>
               <td>{c.id}</td>
               <td>{c.cliente}</td>
               <td>{c.trabajador}</td>
-              <td>{c.oficio}</td>
               <td>{c.estado}</td>
-              <td>{c.fecha}</td>
+              <td>{c.fecha_inicio?.split("T")[0]}</td>
+              <td>{c.fecha_fin ? c.fecha_fin.split("T")[0] : "-"}</td>
             </tr>
           ))}
         </tbody>
@@ -59,4 +80,3 @@ const Contrataciones = () => {
 };
 
 export default Contrataciones;
-

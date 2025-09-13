@@ -1,23 +1,40 @@
-import React, { useState } from 'react';
-
-// Datos mock
-const usuariosMock = [
-  { id: 1, nombre: 'Laura G.', email: 'laura@gmail.com', telefono: '1199990000', tipo: 'cliente' },
-  { id: 2, nombre: 'Pedro Díaz', email: 'pedro@trabajo.com', telefono: '1122233344', tipo: 'trabajador' },
-  { id: 3, nombre: 'Marta C.', email: 'marta@live.com', telefono: '1177788899', tipo: 'cliente' },
-  { id: 4, nombre: 'Luciano Tech', email: 'luci.tech@gmail.com', telefono: '1144455566', tipo: 'trabajador' },
-];
+import axios from 'axios';
+import { useState, useEffect } from 'react';
 
 const Usuarios = () => {
+  const [usuarios, setUsuarios] = useState([]);
   const [filtroTipo, setFiltroTipo] = useState('');
+  const [mensaje, setMensaje] = useState('');
+
+  useEffect(() => {
+    fetchUsuarios();
+  }, []);
+
+  const fetchUsuarios = async () => {
+    const response = await axios.get('/api/personas');
+    setUsuarios(response.data);
+  };
+
+  const resetearContraseña = async (id) => {
+    try {
+      const response = await axios.post(`/api/personas/${id}/reset-password`);
+      setMensaje(`Nueva contraseña: ${response.data.nuevaPassword}`);
+      fetchUsuarios(); // refrescar
+    } catch (error) {
+      console.error(error);
+      setMensaje('Error al resetear contraseña');
+    }
+  };
 
   const usuariosFiltrados = filtroTipo
-    ? usuariosMock.filter(u => u.tipo === filtroTipo)
-    : usuariosMock;
+    ? usuarios.filter(u => u.tipo === filtroTipo)
+    : usuarios;
 
   return (
     <div className="container mt-4">
       <h2>Gestión de Usuarios</h2>
+      {mensaje && <div className="alert alert-info">{mensaje}</div>}
+
       <div className="d-flex justify-content-between align-items-center mb-3">
         <label className="form-label">Filtrar por tipo:</label>
         <select
@@ -37,8 +54,8 @@ const Usuarios = () => {
             <th>ID</th>
             <th>Nombre</th>
             <th>Email</th>
-            <th>Teléfono</th>
             <th>Tipo</th>
+            <th>Acciones</th>
           </tr>
         </thead>
         <tbody>
@@ -46,9 +63,16 @@ const Usuarios = () => {
             <tr key={usuario.id}>
               <td>{usuario.id}</td>
               <td>{usuario.nombre}</td>
-              <td>{usuario.email}</td>
-              <td>{usuario.telefono}</td>
+              <td>{usuario.mail}</td>
               <td>{usuario.tipo}</td>
+              <td>
+                <button
+                  className="btn btn-sm btn-warning"
+                  onClick={() => resetearContraseña(usuario.id)}
+                >
+                  🔑 Resetear
+                </button>
+              </td>
             </tr>
           ))}
         </tbody>
@@ -56,5 +80,6 @@ const Usuarios = () => {
     </div>
   );
 };
+
 
 export default Usuarios;

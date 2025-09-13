@@ -22,6 +22,7 @@ const verificarToken = (req, res, next) => {
     if (!token) return res.status(401).json({ error: 'Token inválido' });
 
     const usuarioActual = jwt.verify(token, SECRET_KEY);
+    //console.log("Usuario en token:", usuarioActual);
     req.usuario = usuarioActual; 
     next();
   } catch (error) {
@@ -31,7 +32,70 @@ const verificarToken = (req, res, next) => {
 };
 
 // Obtener contrataciones
+// Obtener contrataciones
 const getContrataciones = async (req, res) => {
+  try {
+    const { usuario } = req; // 👈 lo traemos del middleware
+
+    const roles = Array.isArray(usuario.roles_keys)
+      ? usuario.roles_keys
+      : [usuario.roles_keys];  // aseguro que siempre sea array
+
+    const esTrabajador = roles.includes('trabajador');
+    const esCliente = roles.includes('cliente');
+    const esAdmin = roles.includes('administrador');
+    const esSupervisor = roles.includes('supervisor');
+
+    // Solo permitir a estos roles
+    if (!esTrabajador && !esCliente && !esAdmin && !esSupervisor) {
+      return res.status(403).json({ error: 'No autorizado' });
+    }
+
+    const pool = await poolPromise;
+    const request = pool.request();
+
+    let query = `
+      SELECT 
+          c.id, 
+          pCliente.nombre AS cliente, 
+          pTrabajador.nombre AS trabajador,
+          ec.descripcion AS estado, 
+          c.fecha_inicio, 
+          c.fecha_fin, 
+          c.descripcion_trabajo,
+          r.id AS reseña_id
+      FROM Contratacion c
+      JOIN Cliente cl ON c.cliente_id = cl.id
+      JOIN Persona pCliente ON cl.id = pCliente.id
+      JOIN Trabajador t ON c.trabajador_id = t.id
+      JOIN Persona pTrabajador ON t.id = pTrabajador.id
+      JOIN EstadosContratacion ec ON c.estado_id = ec.id
+      LEFT JOIN Reseña r ON c.id = r.contratacion_id
+    `;
+
+    // Filtrar según rol
+    if (esCliente) {
+      query += ` WHERE c.cliente_id = @idUsuario`;
+      request.input('idUsuario', sql.Int, usuario.id);
+    } else if (esTrabajador) {
+      query += ` WHERE c.trabajador_id = @idUsuario`;
+      request.input('idUsuario', sql.Int, usuario.id);
+    }
+    // Si es admin o supervisor => ve todas las contrataciones (sin WHERE)
+
+    query += ` ORDER BY c.id DESC`;
+    const result = await request.query(query);
+
+    res.json(result.recordset);
+  } catch (error) {
+    console.error('Error al obtener contrataciones:', error);
+    res.status(500).json({ error: 'Error al obtener contrataciones' });
+  }
+};
+
+
+
+/* const getContrataciones = async (req, res) => {
     try {
         const { usuario } = req; // Obtenido del middleware --> verificarToken
         const esTrabajador = usuario.roles_keys?.includes('trabajador');
@@ -80,9 +144,9 @@ const getContrataciones = async (req, res) => {
         console.error('Error al obtener contrataciones:', error);
         res.status(500).json({ error: 'Error al obtener contrataciones' });
     }
-};
+}; */
 
-
+///Este no va
 /* const getContrataciones = async (req, res) => {
   try {
     const { usuario } = req; // Obtenido del middleware verificarToken

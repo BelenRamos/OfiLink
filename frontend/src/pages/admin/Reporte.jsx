@@ -5,12 +5,16 @@ const Reporte = () => {
   const [datos, setDatos] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [rolFiltro, setRolFiltro] = useState('todos'); // Nuevo estado para el filtro
   const printRef = useRef();
 
   useEffect(() => {
     const fetchDatos = async () => {
+      setLoading(true); // Se inicia la carga
       try {
-        const { data } = await axios.get('/api/personas/reporte');
+        const { data } = await axios.get('/api/personas/reporte', {
+          params: { rol: rolFiltro } // Envía el rol como parámetro de consulta
+        });
         setDatos(data);
       } catch (err) {
         console.error('Error al obtener reporte:', err);
@@ -21,7 +25,7 @@ const Reporte = () => {
     };
 
     fetchDatos();
-  }, []);
+  }, [rolFiltro]); // El efecto se ejecuta cada vez que el filtro cambie
 
   const imprimir = () => {
     const contenido = printRef.current.innerHTML;
@@ -49,13 +53,29 @@ const Reporte = () => {
   return (
     <div>
       <h3>Generar Reporte</h3>
-      <button
-        className="btn btn-success mb-3"
-        onClick={imprimir}
-        disabled={loading || datos.length === 0}
-      >
-        🖨️ Imprimir
-      </button>
+      <div className="d-flex align-items-center mb-3">
+        <label htmlFor="filtroRol" className="me-2">Filtrar por rol:</label>
+        <select
+          id="filtroRol"
+          className="form-select w-auto me-3"
+          value={rolFiltro}
+          onChange={(e) => setRolFiltro(e.target.value)}
+        >
+          <option value="todos">Todos</option>
+          <option value="administrador">Administradores</option>
+          <option value="supervisor">Supervisores</option>
+          <option value="cliente">Clientes</option>
+          <option value="trabajador">Trabajadores</option>
+        </select>
+
+        <button
+          className="btn btn-success"
+          onClick={imprimir}
+          disabled={loading || datos.length === 0}
+        >
+          🖨️ Imprimir
+        </button>
+      </div>
 
       {loading && <p>Cargando datos...</p>}
       {error && <p className="text-danger">{error}</p>}
@@ -67,8 +87,7 @@ const Reporte = () => {
               <tr>
                 <th>ID</th>
                 <th>Nombre</th>
-                <th>Oficio</th>
-                <th>Zona</th>
+                <th>Rol</th> {/* Se cambió para mostrar el rol */}
               </tr>
             </thead>
             <tbody>
@@ -76,8 +95,7 @@ const Reporte = () => {
                 <tr key={d.id}>
                   <td>{d.id}</td>
                   <td>{d.nombre}</td>
-                  <td>{d.oficio}</td>
-                  <td>{d.zona}</td>
+                  <td>{d.rol}</td> {/* Se cambió para mostrar el rol */}
                 </tr>
               ))}
             </tbody>
