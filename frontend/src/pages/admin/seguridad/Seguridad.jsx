@@ -5,6 +5,7 @@ import Permisos from './Permisos';
 import Grupos from './Grupos';
 import Asignaciones from './Asignaciones';
 import Auditoria from './Auditoria';
+import SessionLogs from './SessionLogs';
 
 const Seguridad = () => {
   return (
@@ -13,6 +14,7 @@ const Seguridad = () => {
       <div className="row">
         <div className="col-md-3">
           <ul className="list-group">
+            <li className="list-group-item"><Link to="sessionLogs">Historial de Sesiones</Link></li>
             <li className="list-group-item"><Link to="roles">Roles</Link></li>
             <li className="list-group-item"><Link to="permisos">Permisos</Link></li>
             <li className="list-group-item"><Link to="grupos">Grupos</Link></li>
@@ -22,6 +24,7 @@ const Seguridad = () => {
         </div>
         <div className="col-md-9">
           <Routes>
+            <Route path="sessionLogs" element={<SessionLogs />} />
             <Route path="roles" element={<Roles />} />
             <Route path="permisos" element={<Permisos />} />
             <Route path="grupos" element={<Grupos />} />

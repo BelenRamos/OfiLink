@@ -4,6 +4,22 @@ const bcrypt = require('bcrypt');
 require('dotenv').config(); // leer .env
 const SECRET_KEY = process.env.SECRET_KEY;
 
+// Función auxiliar para registrar en SessionLog
+const registrarSessionLog = async (personaId, accion) => {
+  try {
+    const pool = await poolPromise;
+    await pool.request()
+      .input('personaId', sql.Int, personaId)
+      .input('accion', sql.VarChar, accion) // "login" | "logout"
+      .query(`
+        INSERT INTO SessionLog (PersonaId, AccionLog, FechaHoraLog)
+        VALUES (@personaId, @accion, GETUTCDATE())
+      `);
+  } catch (err) {
+    console.error("Error registrando SessionLog:", err.message);
+  }
+};
+
 const login = async (req, res) => {
   const { usuario, password } = req.body;
 
@@ -18,7 +34,7 @@ const login = async (req, res) => {
           p.id,
           p.nombre,
           p.mail,
-          p.contraseña, -- ⚠️ hash guardado
+          p.contraseña, --hash guardado
           p.tipo_usuario,
           g.Nombre AS grupo,
           STRING_AGG(r.Nombre, ',') AS roles,
@@ -61,6 +77,9 @@ const login = async (req, res) => {
 
     // No devolver el hash al frontend
     delete usuarioEncontrado.contraseña;
+
+    // Registrar login en SessionLog
+    registrarSessionLog(usuarioEncontrado.id, 'login');
 
     res.json({ usuario: usuarioEncontrado, token });
 
@@ -166,4 +185,53 @@ const cambiarPassword = async (req, res) => {
   }
 };
 
-module.exports = { login, cambiarPassword };
+const logout = async (req, res) => {
+  try {
+    const { id } = req.usuario; // lo obtenemos del middleware autenticarJWT
+
+    await registrarSessionLog(id, "logout");
+
+    res.json({ mensaje: 'Sesión cerrada correctamente' });
+  } catch (err) {
+    console.error('Error en logout:', err);
+    res.status(500).json({ error: 'Error al cerrar sesión' });
+  }
+};
+
+
+//Para crear reporte de Logs
+const obtenerSessionLogs = async (req, res) => {
+  const { fechaInicio, fechaFin } = req.query;
+
+  try {
+    const pool = await poolPromise;
+    let query = `
+      SELECT SL.Id, SL.PersonaId, P.Nombre, SL.AccionLog, SL.FechaHoraLog
+      FROM SessionLog SL
+      INNER JOIN Persona P ON SL.PersonaId = P.Id
+      WHERE 1=1
+    `;
+
+    const request = pool.request();
+
+    if (fechaInicio) {
+      request.input("fechaInicio", sql.DateTime, new Date(`${fechaInicio}T00:00:00Z`));
+      query += " AND SL.FechaHoraLog >= @fechaInicio";
+    }
+    if (fechaFin) {
+      request.input("fechaFin", sql.DateTime, new Date(`${fechaFin}T23:59:59Z`));
+      query += " AND SL.FechaHoraLog <= @fechaFin";
+    }
+
+    query += " ORDER BY SL.FechaHoraLog DESC";
+
+    const result = await request.query(query);
+    res.json(result.recordset);
+  } catch (err) {
+    console.error("Error obteniendo logs:", err.message);
+    res.status(500).json({ error: "Error al obtener logs" });
+  }
+};
+
+
+module.exports = { login, cambiarPassword, logout, obtenerSessionLogs };

@@ -46,6 +46,7 @@ const oficiosRoutes = require('./routes/oficios');
 app.use('/api/oficios', oficiosRoutes);
 
 
+
 // Se ejecuta cada 30 minutos
 cron.schedule('*/30 * * * *', () => {
   console.log("⏳ Revisando contrataciones...");
