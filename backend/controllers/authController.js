@@ -20,6 +20,109 @@ const registrarSessionLog = async (personaId, accion) => {
   }
 };
 
+
+const login = async (req, res) => {
+  const { usuario, password } = req.body;
+
+  try {
+    const pool = await poolPromise;
+
+    // Obtener usuario, roles y permisos en una sola consulta
+    const result = await pool.request()
+      .input('usuario', sql.VarChar, usuario)
+      .query(`
+        SELECT
+            p.id,
+            p.nombre,
+            p.mail,
+            p.contraseña,
+            p.tipo_usuario,
+            g.Nombre AS grupo,
+            (
+                SELECT STRING_AGG(Rol, ',')
+                FROM (
+                    SELECT DISTINCT r.Nombre AS Rol
+                    FROM Grupo_Rol gr
+                    JOIN Rol r ON gr.RolId = r.Id
+                    WHERE gr.GrupoId = g.Id
+                ) AS RolesSubconsulta
+            ) AS roles,
+            (
+                SELECT STRING_AGG(LOWER(REPLACE(Rol, ' ', '')), ',')
+                FROM (
+                    SELECT DISTINCT r.Nombre AS Rol
+                    FROM Grupo_Rol gr
+                    JOIN Rol r ON gr.RolId = r.Id
+                    WHERE gr.GrupoId = g.Id
+                ) AS RolesSubconsulta
+            ) AS roles_keys,
+            (
+                SELECT STRING_AGG(Permiso, ',')
+                FROM (
+                    SELECT DISTINCT perm.Nombre AS Permiso
+                    FROM Rol r
+                    JOIN Rol_Permiso rp ON r.Id = rp.RolId
+                    JOIN Permiso perm ON rp.PermisoId = perm.Id
+                    WHERE r.Id IN (
+                        SELECT RolId FROM Grupo_Rol gr
+                        WHERE gr.GrupoId = g.Id
+                    )
+                ) AS PermisosSubconsulta
+            ) AS permisos_keys
+        FROM Persona p
+        LEFT JOIN Grupo g ON p.GrupoId = g.Id
+        WHERE p.mail = @usuario;
+      `);
+
+    if (result.recordset.length === 0) {
+      return res.status(401).json({ error: 'Credenciales inválidas' });
+    }
+
+    const usuarioEncontrado = result.recordset[0];
+
+
+    // Validar contraseña
+    const passwordValida = await bcrypt.compare(password, usuarioEncontrado.contraseña);
+    if (!passwordValida) {
+      return res.status(401).json({ error: 'Credenciales inválidas' });
+    }
+
+    // Preparar campos del usuario
+    usuarioEncontrado.roles = usuarioEncontrado.roles ? usuarioEncontrado.roles.split(',') : [];
+    usuarioEncontrado.roles_keys = usuarioEncontrado.roles_keys ? usuarioEncontrado.roles_keys.split(',') : [];
+    usuarioEncontrado.permisos_keys = usuarioEncontrado.permisos_keys ? usuarioEncontrado.permisos_keys.split(',') : [];
+   
+    //console.log('Objeto de usuario recibido de la base de datos:', usuarioEncontrado);
+   
+    // Generar JWT con roles y permisos
+    const token = jwt.sign(
+      {
+        id: usuarioEncontrado.id,
+        nombre: usuarioEncontrado.nombre,
+        mail: usuarioEncontrado.mail,
+        roles_keys: usuarioEncontrado.roles_keys,
+        permisos_keys: usuarioEncontrado.permisos_keys,
+      },
+      SECRET_KEY,
+      { expiresIn: '2h' }
+    );
+
+    // Limpiar hash
+    delete usuarioEncontrado.contraseña;
+
+    // Log de login
+    registrarSessionLog(usuarioEncontrado.id, 'login');
+
+    res.json({ usuario: usuarioEncontrado, token });
+
+  } catch (err) {
+    console.error('Error al iniciar sesión:', err);
+    res.status(500).json({ error: 'Error del servidor' });
+  }
+};
+
+
+/* 
 const login = async (req, res) => {
   const { usuario, password } = req.body;
 
@@ -87,7 +190,7 @@ const login = async (req, res) => {
     console.error('Error al iniciar sesión:', err);
     res.status(500).json({ error: 'Error del servidor' });
   }
-};
+}; */
 
 //Version sin hash
 /* const login = async (req, res) => {

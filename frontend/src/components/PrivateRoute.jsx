@@ -1,18 +1,35 @@
-import { Navigate } from 'react-router-dom';
+import React from 'react';
+import { Navigate, useLocation } from 'react-router-dom';
+import { useAuth } from '../hooks/useAuth'; // 👈 Usar la fuente de verdad
 
 const PrivateRoute = ({ children, allowedRoles }) => {
-  const usuario = JSON.parse(localStorage.getItem('usuarioActual'));
+  // Se obtiene la data del Contexto, NO de localStorage
+  const { usuario, tieneRol, isLoading } = useAuth();
+  const location = useLocation();
 
-  if (!usuario) return <Navigate to="/login" replace />;
+  // Se espera la carga. Si AuthProvider no ha decidido, muestra un loader.
+  if (isLoading) {
+    return (
+      <div className="d-flex justify-content-center mt-5">
+        <div className="spinner-border text-primary" role="status">
+          <span className="visually-hidden">Cargando...</span>
+        </div>
+      </div>
+    );
+  }
 
-  // allowedRoles y roles_keys están en minúscula para comparación
-  const userRoles = usuario.roles_keys || [];
-  const hasAccess = allowedRoles
-    ? allowedRoles.some(role => userRoles.includes(role.toLowerCase()))
-    : true;
-
-  if (!hasAccess) {
-    return <Navigate to="/" replace />;
+  //Redirección si NO está logueado
+  if (!usuario) {
+    return <Navigate to="/login" state={{ from: location }} replace />;
+  }
+  
+  //Verificación de Roles (Usando la función del Contexto)
+  if (allowedRoles) {
+      // ¿Tiene almenos uno de los roles permitidos?
+      if (!tieneRol(...allowedRoles)) { 
+          // No tiene el rol necesario
+          return <Navigate to="/" replace />;
+      }
   }
 
   return children;

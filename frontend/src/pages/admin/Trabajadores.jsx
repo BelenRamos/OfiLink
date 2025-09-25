@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+/* import React, { useEffect, useState } from 'react';
 
 const Trabajadores = () => {
   const [trabajadores, setTrabajadores] = useState([]);
@@ -54,3 +54,4 @@ const Trabajadores = () => {
 };
 
 export default Trabajadores;
+ */

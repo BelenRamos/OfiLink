@@ -1,13 +1,23 @@
 import React, { useEffect, useState } from 'react';
 import { apiFetch } from '../utils/apiFetch';
 import CardContratacion from '../components/CardContrataciones';
+import { useAuth } from '../hooks/useAuth'; 
 
 const Home = () => {
-  const [usuario, setUsuario] = useState(null);
+  //Se obtiene toda la info y las funciones del Contexto
+  const { usuario, tienePermiso, tieneRol } = useAuth();
+  
+  // Mantenemos solo el estado local necesario
   const [contrataciones, setContrataciones] = useState([]);
 
+  // Si el usuario es null (ej: no logueado), la PrivateRoute ya se encargó de redirigir.
+  // Por precaución, siempre verifica si 'usuario' existe antes de usarlo.
+
   const cargarContrataciones = async () => {
+    if (!usuario) return; 
+
     try {
+      // Si la API de contrataciones requiere un token, 'apiFetch' debe estar configurado para adjuntar automáticamente el token de 'usuario.token'.
       const data = await apiFetch('/api/contrataciones');
       setContrataciones(data);
     } catch (error) {
@@ -17,21 +27,19 @@ const Home = () => {
   };
 
   useEffect(() => {
-    const usuarioGuardado = localStorage.getItem('usuarioActual');
-    if (!usuarioGuardado) return;
+    if (usuario) {
+      cargarContrataciones();
+    }
+  }, [usuario]); 
 
-    const parsedUsuario = JSON.parse(usuarioGuardado);
-    setUsuario(parsedUsuario);
+  // --- Lógica de Renderizado y Permisos ---
+  //Verificación de permisos
+  if (!tienePermiso("ver_home")) {
+     // Si la PrivateRoute no maneja el rol/permiso específico, se muestra el error aquí.
+     return <h2 className="mt-4">No tienes permiso para acceder al Home</h2>;
+  }
 
-    cargarContrataciones();
-  }, []);
-
-  if (!usuario) return <h2 className="mt-4">Debe iniciar sesión</h2>;
-
-
-  const tieneRol = (...roles) => roles.some(r => usuario?.roles_keys?.includes(r));
-
-  // Filtramos según el rol
+  //Filtrado de Contrataciones: Usamos la función tieneRol del Contexto
   let contratacionesMostradas = contrataciones;
   if (tieneRol('cliente')) {
     contratacionesMostradas = contrataciones.filter(c => c.estado === 'En curso');
@@ -39,11 +47,11 @@ const Home = () => {
 
   return (
     <div className="container mt-4">
+      {/* Usamos directamente el objeto 'usuario' del contexto */}
       <h2>Bienvenido, {usuario.nombre}</h2>
 
       {contratacionesMostradas.length === 0 && (
         <p>¡No tienes contrataciones en curso!</p>
-        
       )}
 
       {contratacionesMostradas.map(c => (

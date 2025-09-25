@@ -18,12 +18,14 @@ import CambiarPassword from './pages/CambiarPassword';
 import MisContrataciones from './pages/MisContrataciones';
 
 function App() {
-  const usuario = JSON.parse(localStorage.getItem('usuarioActual'));
+  //const usuario = JSON.parse(localStorage.getItem('usuarioActual'));
 
   return (
     <Router>
       {/* Navbar solo si hay usuario logueado */}
-      <Navbar key={localStorage.getItem('usuarioActual') ? 'log' : 'nolog'} />
+      {/* <Navbar key={localStorage.getItem('usuarioActual') ? 'log' : 'nolog'} /> */} {/* El Navbar ahora debe usar el hook 'useAuth' internamente.*/}
+      <Navbar /> 
+      
 
       <Routes>
         {/* Rutas públicas */}

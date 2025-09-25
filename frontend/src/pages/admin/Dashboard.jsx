@@ -21,7 +21,7 @@ const Dashboard = () => {
       .catch(err => console.error(err));
   }, []);
 
-  const COLORS = ["#CD94C1", "#D4E271"]; // rosa y amarillo verdoso del logo
+  const COLORS = ["#CD94C1", "#D4E271"]; 
 
   return (
     <div>
