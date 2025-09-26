@@ -39,11 +39,22 @@ const Home = () => {
      return <h2 className="mt-4">No tienes permiso para acceder al Home</h2>;
   }
 
+  const permisosTarjeta = {
+    aceptar: !!tienePermiso('contratacion_aceptar'),
+    cancelar: !!tienePermiso('contratacion_cancelar'),
+    resenar: !!tienePermiso('contratacion_resenar'),
+    terminar: !!tienePermiso('contratacion_terminar'),
+  };
+
   //Filtrado de Contrataciones: Usamos la función tieneRol del Contexto
   let contratacionesMostradas = contrataciones;
   if (tieneRol('cliente')) {
     contratacionesMostradas = contrataciones.filter(c => c.estado === 'En curso');
   }
+
+  // 📢 Opcional, pero útil para confirmar
+  console.log("Home: Permiso Terminar que se enviará:", permisosTarjeta.terminar);
+
 
   return (
     <div className="container mt-4">
@@ -60,6 +71,7 @@ const Home = () => {
           contratacion={c}
           usuario={usuario}
           onActualizar={cargarContrataciones}
+          permisos={permisosTarjeta}
         />
       ))}
     </div>

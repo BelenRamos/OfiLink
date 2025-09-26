@@ -2,11 +2,14 @@ import React, { useEffect, useState } from 'react';
 import { apiFetch } from '../utils/apiFetch';
 import CardContratacion from '../components/CardContrataciones';
 import ResenaModal from '../components/ResenaModal';
+import { useAuth } from '../hooks/useAuth';
 
 const MisContrataciones = () => {
-  const [usuario, setUsuario] = useState(null);
+  //const [usuario, setUsuario] = useState(null);
+  const { usuario, tienePermiso, isLoading } = useAuth();
   const [contrataciones, setContrataciones] = useState([]);
   const [contratacionSeleccionada, setContratacionSeleccionada] = useState(null);
+  
 
   const cargarContrataciones = async () => {
     try {
@@ -18,7 +21,12 @@ const MisContrataciones = () => {
     }
   };
 
-  useEffect(() => {
+  const handleCloseModal = () => { 
+    setContratacionSeleccionada(null);
+  };
+  
+
+/*   useEffect(() => {
     const usuarioGuardado = localStorage.getItem('usuarioActual');
     if (!usuarioGuardado) return;
 
@@ -26,15 +34,39 @@ const MisContrataciones = () => {
     setUsuario(parsedUsuario);
 
     cargarContrataciones();
-  }, []);
+  }, []); */
+ 
+  useEffect(() => {
+        if (usuario) {
+            cargarContrataciones();
+        }
+  }, [usuario]);
 
-  const handleCloseModal = () => {
-    setContratacionSeleccionada(null);
-  };
-
+  
   const showModal = !!contratacionSeleccionada;
 
-  if (!usuario) return <h2 className="mt-4">Debe iniciar sesión</h2>;
+console.log("DEBUG RENDER: Usuario existe:", !!usuario);
+console.log("DEBUG RENDER: Valor de tienePermiso('contratacion_terminar'):", tienePermiso('contratacion_terminar'));
+
+if (isLoading) return <p>Cargando usuario...</p>;
+
+
+const permisosTarjeta = {
+    aceptar: !!tienePermiso('contratacion_aceptar'),
+    cancelar: !!tienePermiso('contratacion_cancelar'),
+    resenar: !!tienePermiso('contratacion_resenar'),
+    terminar: !!tienePermiso('contratacion_terminar'),
+};
+
+
+if (!usuario || !tienePermiso("ver_mis_contrataciones")) {
+      return <h2 className="mt-4">No tienes permiso para ver Mis Contrataciones</h2>;
+}
+
+/*   if (!usuario || !tienePermiso("ver_mis_contrataciones")) {
+      return <h2 className="mt-4">No tienes permiso para ver Mis Contrataciones</h2>;
+  } */
+  
 
   return (
     <div className="container mt-4">
@@ -47,6 +79,7 @@ const MisContrataciones = () => {
           usuario={usuario}
           onActualizar={cargarContrataciones}
           onResenaPendiente={() => setContratacionSeleccionada(c)}
+          permisos={permisosTarjeta} 
         />
       ))}
 

@@ -1,8 +1,10 @@
 import React, { useState } from 'react';
 import { apiFetch } from '../utils/apiFetch';
 
-const CardContratacion = ({ contratacion, usuario, onActualizar, onResenaPendiente }) => {
-  const [estadoActual, setEstadoActual] = useState(contratacion.estado);
+/* const CardContratacion = ({ contratacion, usuario, onActualizar, onResenaPendiente }) => {
+  const [estadoActual, setEstadoActual] = useState(contratacion.estado); */
+  const CardContratacion = ({ contratacion, usuario, onActualizar, onResenaPendiente, permisos = {}  }) => {
+    const [estadoActual, setEstadoActual] = useState(contratacion.estado);
 
   const handleAccion = async (accion) => {
     try {
@@ -24,7 +26,7 @@ const CardContratacion = ({ contratacion, usuario, onActualizar, onResenaPendien
   const esTrabajador = usuario.roles_keys.includes('trabajador');
   const esCliente = usuario.roles_keys.includes('cliente');
 
-  const puedeAceptar = esTrabajador && estadoActual === 'Pendiente';
+/*   const puedeAceptar = esTrabajador && estadoActual === 'Pendiente';
   const puedeTerminar = esTrabajador && estadoActual === 'En curso';
   const puedeCancelar =
     (esTrabajador || esCliente) &&
@@ -35,7 +37,20 @@ const CardContratacion = ({ contratacion, usuario, onActualizar, onResenaPendien
   const puedeResenar =
     esCliente &&
     estadoActual === 'Finalizada' &&
-    !contratacion.reseña_id; 
+    !contratacion.reseña_id;  */
+
+    const puedeAceptarPorRol = esTrabajador && estadoActual === 'Pendiente';
+    const puedeTerminarPorRol = esTrabajador && estadoActual === 'En curso';
+    
+    const puedeCancelarPorRol = 
+      (esTrabajador || esCliente) && 
+      estadoActual !== 'Finalizada' && 
+      estadoActual !== 'Cancelada';
+
+    const puedeResenarPorRol = 
+      esCliente && 
+      estadoActual === 'Finalizada' && 
+      !contratacion.reseña_id; 
 
   const reseñaYaHecha = esCliente && estadoActual === 'Finalizada' && contratacion.reseña_id;
 
@@ -52,7 +67,30 @@ const CardContratacion = ({ contratacion, usuario, onActualizar, onResenaPendien
         <p><strong>Estado:</strong> {estadoActual}</p>
 
         <div className="mt-2">
-          {puedeAceptar && (
+          {puedeAceptarPorRol && permisos.aceptar && (
+              <button className="btn btn-success me-2" onClick={() => handleAccion('aceptar')}>
+                  Aceptar
+              </button>
+          )}
+
+          {puedeTerminarPorRol && permisos.terminar && (
+              <button className="btn btn-primary me-2" onClick={() => handleAccion('terminar')}>
+                  Terminar
+              </button>
+          )}
+
+          {puedeCancelarPorRol && permisos.cancelar && (
+              <button className="btn btn-danger me-2" onClick={() => handleAccion('cancelar')}>
+                  Cancelar
+              </button>
+          )}
+
+          {puedeResenarPorRol && permisos.resenar && (
+              <button className="btn btn-warning" onClick={() => onResenaPendiente(contratacion)}>
+                  Dejar reseña
+              </button>
+          )}
+{/*           {puedeAceptar && (
             <button
               className="btn btn-success me-2"
               onClick={() => handleAccion('aceptar')}
@@ -86,7 +124,7 @@ const CardContratacion = ({ contratacion, usuario, onActualizar, onResenaPendien
             >
               Dejar reseña
             </button>
-          )}
+          )} */}
           
           {reseñaYaHecha && (
             <button className="btn btn-success" disabled>

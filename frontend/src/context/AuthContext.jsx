@@ -91,6 +91,15 @@ export const AuthProvider = ({ children }) => {
     }, []);
 
     const tienePermiso = (permiso) => checkPermiso(usuario, permiso);
+
+    // AÑADE ESTE CONSOLE.LOG AQUÍ:
+    useEffect(() => {
+        if (usuario) {
+            console.log("Contexto: Usuario cargado. Permisos:", usuario.permisos_keys);
+            console.log("Contexto: ¿Tiene 'contratacion_terminar'?", tienePermiso('contratacion_terminar'));
+        }
+    }, [usuario]);
+
     const tieneRol = (...roles) => checkRol(usuario, ...roles);
 
     return (
