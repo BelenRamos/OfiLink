@@ -26,6 +26,9 @@ app.use('/api/personas', personasRoutes);
 const contratacionesRoutes = require('./routes/contrataciones');
 app.use('/api/contrataciones', contratacionesRoutes);
 
+const solicitudesRoutes = require('./routes/solicitudes');
+app.use('/api/solicitudes', solicitudesRoutes);
+
 //Seguridad
 const rolesRoutes = require('./routes/seguridad/roles');
 app.use('/api/roles', rolesRoutes);
@@ -48,7 +51,7 @@ app.use('/api/oficios', oficiosRoutes);
 
 
 // Se ejecuta cada 30 minutos
-cron.schedule('*/30 * * * *', () => {
+cron.schedule('*/1 * * * *', () => {
   console.log("⏳ Revisando contrataciones...");
   updateContratacionesEnCurso();
 });

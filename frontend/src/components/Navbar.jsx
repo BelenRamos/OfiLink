@@ -1,4 +1,4 @@
-import React from 'react'; // Ya no necesitamos { useEffect, useState }
+import React from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import logo from '../assets/logo1.png';
 import './Navbar.css';
@@ -35,7 +35,19 @@ const Navbar = () => {
                 </Link>
             )}
 
-            <div className="collapse navbar-collapse">
+            <button 
+                className="navbar-toggler" 
+                type="button" 
+                data-bs-toggle="collapse" 
+                data-bs-target="#navbarNav" 
+                aria-controls="navbarNav" 
+                aria-expanded="false" 
+                aria-label="Toggle navigation"
+            >
+                <span className="navbar-toggler-icon"></span>
+            </button>
+
+            <div className="collapse navbar-collapse" id="navbarNav">
                 <ul className="navbar-nav ms-auto">
                     {/* El Navbar reacciona a 'usuario' del contexto. */}
                     {usuario ? (
@@ -45,12 +57,21 @@ const Navbar = () => {
                                 <>
                                     <li className="nav-item"><Link className="nav-link" to="/buscar">Buscar</Link></li>
                                     <li className="nav-item"><Link className="nav-link" to="/mi-perfil">Mi perfil</Link></li>
+                                    
+                                    {/* ✅ Mis Solicitudes (para clientes) */}
+                                    <li className="nav-item"><Link className="nav-link" to="/mis-solicitudes">Mis Solicitudes</Link></li>
+
+                                    {/* Mantenemos Mis Contrataciones si las gestionan aparte */}
                                     <li className="nav-item"><Link className="nav-link" to="/mis-contrataciones">Mis Contrataciones</Link></li>
                                 </>
                             )}
 
                             {tieneRol('trabajador') && (
-                                <li className="nav-item"><Link className="nav-link" to="/mi-perfil">Mi perfil</Link></li>
+                                <>
+                                    {/* ✅ Solicitudes Clientes (para trabajadores) */}
+                                    <li className="nav-item"><Link className="nav-link" to="/solicitudes-clientes">Trabajos Disponibles</Link></li>
+                                    <li className="nav-item"><Link className="nav-link" to="/mi-perfil">Mi perfil</Link></li>
+                                </>
                             )}
 
                             <li className="nav-item">
@@ -60,7 +81,13 @@ const Navbar = () => {
                                 </button>
                             </li>
                         </>
-                    ) : null}
+                    ) : (
+                        // Enlaces para usuarios no autenticados (Login/Registro) --> SACAR
+                        <>
+                            <li className="nav-item"><Link className="nav-link" to="/login">Iniciar Sesión</Link></li>
+                            <li className="nav-item"><Link className="nav-link" to="/registro">Registro</Link></li>
+                        </>
+                    )}
                 </ul>
             </div>
         </nav>

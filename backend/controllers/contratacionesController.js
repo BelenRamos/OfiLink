@@ -31,11 +31,11 @@ const verificarToken = (req, res, next) => {
   }
 };
 
-// Obtener contrataciones
+
 // Obtener contrataciones
 const getContrataciones = async (req, res) => {
   try {
-    const { usuario } = req; // 👈 lo traemos del middleware
+    const { usuario } = req; 
 
     const roles = Array.isArray(usuario.roles_keys)
       ? usuario.roles_keys

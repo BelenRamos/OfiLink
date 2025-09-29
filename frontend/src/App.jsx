@@ -16,6 +16,8 @@ import FormularioRegistro from './pages/FormularioRegistro';
 import FormularioTrabajador from './pages/FormularioTrabajador';
 import CambiarPassword from './pages/CambiarPassword';
 import MisContrataciones from './pages/MisContrataciones';
+import MisSolicitudes from './pages/MisSolicitudes';
+import SolicitudesClientes from './pages/SolicitudesClientes';
 
 function App() {
   //const usuario = JSON.parse(localStorage.getItem('usuarioActual'));
@@ -61,6 +63,16 @@ function App() {
         <Route path="/admin/*" element={
           <PrivateRoute allowedRoles={['administrador', 'supervisor']}>
             <DashboardLayout />
+          </PrivateRoute>
+        } />
+        <Route path="/mis-solicitudes" element={
+          <PrivateRoute>
+            <MisSolicitudes />
+          </PrivateRoute>
+        } />
+        <Route path="/solicitudes-clientes" element={
+          <PrivateRoute>
+            <SolicitudesClientes />
           </PrivateRoute>
         } />
 

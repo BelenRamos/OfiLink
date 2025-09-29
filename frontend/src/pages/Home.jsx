@@ -52,10 +52,6 @@ const Home = () => {
     contratacionesMostradas = contrataciones.filter(c => c.estado === 'En curso');
   }
 
-  // 📢 Opcional, pero útil para confirmar
-  console.log("Home: Permiso Terminar que se enviará:", permisosTarjeta.terminar);
-
-
   return (
     <div className="container mt-4">
       {/* Usamos directamente el objeto 'usuario' del contexto */}
