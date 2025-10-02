@@ -76,7 +76,7 @@ const PerfilTrabajador = () => {
 
       <hr />
 
-      {usuario.roles_keys?.includes('cliente') && (
+      {usuario.roles_keys?.includes('cliente') && trabajador.disponible && (
         mostrandoFormulario ? (
           <FormularioContratacion
             idTrabajador={trabajador.id}
@@ -96,8 +96,7 @@ const PerfilTrabajador = () => {
         )
       )}
 
-
-      <h4>Reseñas</h4>
+      <h3>Reseñas</h3>
       {reseñas.length === 0 ? (
         <p>No hay reseñas para este trabajador.</p>
       ) : (

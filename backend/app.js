@@ -48,6 +48,8 @@ app.use('/api/zonas', zonasRoutes);
 const oficiosRoutes = require('./routes/oficios');
 app.use('/api/oficios', oficiosRoutes);
 
+//Para la foto de perfil
+//app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 
 // Se ejecuta cada 30 minutos

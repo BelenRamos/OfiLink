@@ -56,6 +56,30 @@ const MiPerfil = () => {
           <p><strong>Descripción:</strong> {perfilTrabajador.descripcion || '(a completar)'}</p>
           <p><strong>Teléfono:</strong> {perfilTrabajador.telefono || '(a completar)'}</p>
           <p><strong>Puntuación:</strong> {perfilTrabajador.calificacion_promedio ?? '(sin calificación)'}</p>
+          
+          <div className="form-check form-switch mt-3">
+            <input
+              className="form-check-input"
+              type="checkbox"
+              id="switchDisponibilidad"
+              checked={perfilTrabajador.disponible}
+              onChange={async (e) => {
+                const nuevoEstado = e.target.checked;
+                try {
+                  await apiFetch(`/api/trabajadores/${perfilTrabajador.id}/disponibilidad`, {
+                    method: 'PUT',
+                    body: JSON.stringify({ disponible: nuevoEstado })
+                  });
+                  setPerfilTrabajador({ ...perfilTrabajador, disponible: nuevoEstado });
+                } catch (err) {
+                  console.error('Error al cambiar disponibilidad', err);
+                }
+              }}
+            />
+            <label className="form-check-label" htmlFor="switchDisponibilidad">
+              {perfilTrabajador.disponible ? 'Disponible' : 'No disponible'}
+            </label>
+          </div>
         </>
       )}
 

@@ -138,8 +138,42 @@ const obtenerTrabajadorPorId = async (req, res) => {
   }
 };
 
+const actualizarDisponibilidad = async (req, res) => {
+  const id = parseInt(req.params.id);
+  const { disponible } = req.body; // true / false
+
+  try {
+    const pool = await poolPromise;
+    const request = pool.request()
+      .input('id', sql.Int, id)
+      .input('disponible', sql.Bit, disponible ? 1 : 0);
+
+    const result = await request.query(`
+      UPDATE Trabajador
+      SET disponible = @disponible
+      WHERE id = @id;
+
+      SELECT disponible FROM Trabajador WHERE id = @id;
+    `);
+
+    if (result.recordset.length === 0) {
+      return res.status(404).json({ mensaje: 'Trabajador no encontrado' });
+    }
+
+    res.json({
+      mensaje: 'Disponibilidad actualizada',
+      disponible: result.recordset[0].disponible
+    });
+  } catch (err) {
+    console.error('❌ Error al actualizar disponibilidad:', err.message);
+    res.status(500).json({ mensaje: 'Error interno del servidor' });
+  }
+};
+
+
 
 module.exports = {
   filtrarTrabajadores,
   obtenerTrabajadorPorId,
+  actualizarDisponibilidad
 };
