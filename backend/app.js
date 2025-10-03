@@ -1,6 +1,8 @@
 const express = require('express');
 const app = express();
 const cors = require('cors');
+const path = require('path'); 
+
 
 //CRON --> Para la actualizacion de estado de contratacion
 const cron = require('node-cron');
@@ -49,11 +51,12 @@ const oficiosRoutes = require('./routes/oficios');
 app.use('/api/oficios', oficiosRoutes);
 
 //Para la foto de perfil
-//app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+const uploadsPath = 'C:\\temp_uploads';
+app.use('/uploads/personas', express.static(uploadsPath)); 
 
 
 // Se ejecuta cada 30 minutos
-cron.schedule('*/1 * * * *', () => {
+cron.schedule('*/2 * * * *', () => {
   console.log("⏳ Revisando contrataciones...");
   updateContratacionesEnCurso();
 });

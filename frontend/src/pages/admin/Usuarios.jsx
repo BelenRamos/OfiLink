@@ -17,7 +17,7 @@ const Usuarios = () => {
 
   const resetearContraseña = async (id) => {
     try {
-      const response = await axios.post(`/api/personas/${id}/reset-password`);
+      const response = await axios.put(`/api/personas/${id}/reset-password`);
       setMensaje(`Nueva contraseña: ${response.data.nuevaPassword}`);
       fetchUsuarios(); // refrescar
     } catch (error) {

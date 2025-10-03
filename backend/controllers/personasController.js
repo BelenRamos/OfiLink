@@ -1,10 +1,101 @@
 const { poolPromise, sql } = require('../db');
 const bcrypt = require('bcrypt');
 const crypto = require('crypto');
+const path = require('path');
+const fs = require('fs/promises');
+const fsSync = require('fs');
+const multer = require('multer');
+
+const uploadsDir = path.join(__dirname, '../uploads/personas');
+if (!fsSync.existsSync(uploadsDir)) {
+  fsSync.mkdirSync(uploadsDir, { recursive: true });
+}
+
+const fileFilter = (req, file, cb) => {
+  // Solo aceptar archivos que inician con 'image/' (JPEG, PNG, GIF, etc.)
+  if (file.mimetype.startsWith('image/')) cb(null, true);
+  else cb(null, false);
+};
+
+const storage = multer.diskStorage({
+  destination: (req, file, cb) => cb(null, uploadsDir),
+  filename: (req, file, cb) => {
+    // Aseguramos que el ID esté disponible para el nombre del archivo
+    const id = req.params.id || 'temp'; 
+    cb(null, `usuario_${id}${path.extname(file.originalname)}`);
+  }
+});
+
+const upload = multer({
+  storage,
+  fileFilter,
+  limits: { fileSize: 2 * 1024 * 1024 } // 2MB
+});
 
 
+const uploadMiddleware = (req, res, next) => {
+    upload.single('foto')(req, res, (err) => {
+        if (err instanceof multer.MulterError) {
+            if (err.code === 'LIMIT_FILE_SIZE') {
+                return res.status(400).json({ mensaje: 'El archivo es demasiado grande. Máximo permitido es 2MB.' });
+            }
+            return res.status(400).json({ mensaje: `Error de Multer: ${err.message}` });
+        } else if (err) {
+            return res.status(500).json({ mensaje: 'Error desconocido al subir el archivo.' });
+        }
 
-///Este revisar --> No se si se sigue usando
+        if (!req.file) {
+            return res.status(400).json({ mensaje: 'Formato de archivo no permitido (solo imágenes).' });
+        }
+        next(); 
+    });
+};
+
+
+const subirFoto = async (req, res) => {
+  const id = parseInt(req.params.id);
+  
+  const fotoUrl = `/uploads/personas/${req.file.filename}`;
+
+  try {
+    const pool = await poolPromise;
+
+    // 1. Obtener foto anterior
+    const result = await pool.request()
+      .input('id', sql.Int, id)
+      .query('SELECT foto FROM Persona WHERE id = @id');
+
+    const fotoAnterior = result.recordset[0]?.foto;
+
+    // 2. Actualizar BD
+    await pool.request()
+      .input('id', sql.Int, id)
+      .input('fotoUrl', sql.VarChar, fotoUrl)
+      .query('UPDATE Persona SET foto = @fotoUrl WHERE id = @id');
+
+    // 3. Eliminar foto anterior si existe y no es la default
+    if (fotoAnterior && !fotoAnterior.includes('default-avatar.png')) {
+      const pathFotoAnterior = path.join(__dirname, '..', fotoAnterior);
+      await fs.unlink(pathFotoAnterior).catch(err => {
+            // Advertencia si la eliminación falla, pero no detenemos el proceso
+            console.warn('No se pudo eliminar foto anterior:', err.message)
+        });
+    }
+
+    // 4. Respuesta final
+    res.json({ mensaje: 'Foto actualizada', foto_url: fotoUrl });
+  } catch (err) {
+    console.error('Error al guardar foto en DB:', err.message);
+    
+    // Si la DB falla, eliminamos la foto recién subida para evitar basura.
+    await fs.unlink(req.file.path).catch(cleanupErr => {
+        console.warn('Fallo la limpieza del archivo subido tras error de DB:', cleanupErr.message);
+    }); 
+    
+    res.status(500).json({ mensaje: 'Error interno al actualizar la BD' });
+  }
+};
+
 const getResumenPersonas = async (req, res) => {
   try {
     const pool = await poolPromise;
@@ -45,6 +136,40 @@ const getPersonas = async (req, res) => {
     console.error('Error al obtener personas:', error);
     res.status(500).json({ error: 'Error al obtener personas' });
   }
+};
+
+//Para recuperar la foto
+const getPersonaPorId = async (req, res) => {
+    const id = parseInt(req.params.id);
+    try {
+        const pool = await poolPromise;
+        const result = await pool.request()
+          .input('id', sql.Int, id)
+          .query(`
+            SELECT 
+              p.id,
+              p.nombre,
+              p.mail,
+              p.foto AS foto_url,  
+              p.fecha_nacimiento,
+              CASE p.GrupoId
+                WHEN 3 THEN 'cliente'
+                WHEN 4 THEN 'trabajador'
+                ELSE 'desconocido'
+              END AS tipo
+            FROM Persona p
+            WHERE p.id = @id
+        `);
+
+        if (result.recordset.length === 0) {
+            return res.status(404).json({ mensaje: 'Persona no encontrada' });
+        }
+
+        res.json(result.recordset[0]);
+    } catch (error) {
+        console.error('Error al obtener persona por ID:', error);
+        res.status(500).json({ error: 'Error al obtener persona' });
+    }
 };
 
 const getPersonasReporte = async (req, res) => {
@@ -253,7 +378,6 @@ const registrarPersona = async (req, res) => {
     }
 };
 
-
 //Resetear Contraseña -- Solo por el admin
 const resetPassword = async (req, res) => {
   const { id } = req.params;
@@ -282,13 +406,13 @@ const resetPassword = async (req, res) => {
   }
 };
 
-
-
-
 module.exports = {
-  getResumenPersonas,
   getPersonasReporte,
   registrarPersona,
+  getResumenPersonas,
   getPersonas,
-  resetPassword
+  getPersonaPorId,
+  resetPassword,
+  subirFoto,
+  uploadMiddleware // Exportamos la función de middleware con el manejo de errores de Multer
 };
