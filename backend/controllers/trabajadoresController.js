@@ -39,6 +39,7 @@ const filtrarTrabajadores = async (req, res) => {
         p.id,
         p.nombre,
         p.mail,
+        p.foto AS foto_url,
         t.descripcion,
         t.contacto,
         t.disponible,
@@ -87,36 +88,37 @@ const obtenerTrabajadorPorId = async (req, res) => {
     const request = pool.request().input('id', sql.Int, id);
 
     const result = await request.query(`
-      SELECT 
-        p.id,
-        p.nombre,
-        p.mail,
-        t.descripcion,
-        t.contacto,
-        t.disponible,
-        t.calificacion_promedio,
-        (
-          SELECT STRING_AGG(nombre, ',')
-          FROM (
-            SELECT DISTINCT o2.nombre
-            FROM Trabajador_Oficio to2
-            JOIN Oficio o2 ON o2.id = to2.oficio_id
-            WHERE to2.trabajador_id = t.id
-          ) AS oficiosUnicos
-        ) AS oficios,
-        (
-          SELECT STRING_AGG(nombre, ',')
-          FROM (
-            SELECT DISTINCT z2.nombre
-            FROM Trabajador_Zona tz2
-            JOIN Zona z2 ON z2.id = tz2.zona_id
-            WHERE tz2.trabajador_id = t.id
-          ) AS zonasUnicas
-        ) AS zonas
-      FROM Trabajador t
-      INNER JOIN Persona p ON p.id = t.id
-      WHERE t.id = @id
-    `);
+       SELECT 
+        p.id,
+        p.nombre,
+        p.mail,
+        p.foto AS foto_url,  -- 💡 CAMBIO CLAVE AÑADIDO
+        t.descripcion,
+        t.contacto,
+        t.disponible,
+        t.calificacion_promedio,
+        (
+          SELECT STRING_AGG(nombre, ',')
+          FROM (
+            SELECT DISTINCT o2.nombre
+            FROM Trabajador_Oficio to2
+            JOIN Oficio o2 ON o2.id = to2.oficio_id
+            WHERE to2.trabajador_id = t.id
+          ) AS oficiosUnicos
+        ) AS oficios,
+        (
+          SELECT STRING_AGG(nombre, ',')
+          FROM (
+            SELECT DISTINCT z2.nombre
+            FROM Trabajador_Zona tz2
+            JOIN Zona z2 ON z2.id = tz2.zona_id
+            WHERE tz2.trabajador_id = t.id
+          ) AS zonasUnicas
+        ) AS zonas
+      FROM Trabajador t
+      INNER JOIN Persona p ON p.id = t.id
+      WHERE t.id = @id
+    `);
 
     if (result.recordset.length === 0) {
       return res.status(404).json({ mensaje: 'Trabajador no encontrado' });

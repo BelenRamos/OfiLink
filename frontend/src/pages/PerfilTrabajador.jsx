@@ -2,6 +2,9 @@ import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import FormularioContratacion from '../components/FormularioContratacion';
 
+const BACKEND_BASE_URL = 'http://localhost:3000'; 
+const DEFAULT_AVATAR = '/default-avatar.png';
+
 const PerfilTrabajador = () => {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -48,6 +51,9 @@ const PerfilTrabajador = () => {
 
 
   if (loading) return <div className="container mt-4">Cargando...</div>;
+
+  const fotoUrl = trabajador.foto_url ? BACKEND_BASE_URL + trabajador.foto_url : DEFAULT_AVATAR;
+
   if (!trabajador)
     return (
       <div className="container mt-4">
@@ -64,6 +70,20 @@ const PerfilTrabajador = () => {
         ← Volver
       </button>
 
+      <div className="d-flex align-items-center mb-3">
+        <img
+          src={fotoUrl}
+          alt={`Foto de ${trabajador.nombre}`}
+          style={{ width: '100px', height: '100px', objectFit: 'cover', borderRadius: '50%' }}
+          className="me-3 border"
+        />
+        <div>
+          <h2>{trabajador.nombre}</h2>
+          <h5 className="text-muted">
+            {trabajador.oficios?.join(', ')} - {trabajador.zona}
+          </h5>
+        </div>
+      </div>
       <h2>{trabajador.nombre}</h2>
       <h5 className="text-muted">
         {trabajador.oficios?.join(', ')} - {trabajador.zona}
