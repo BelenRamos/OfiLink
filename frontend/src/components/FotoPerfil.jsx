@@ -56,7 +56,6 @@ const FotoPerfil = ({ userId, currentFotoUrl, onFotoUpdate }) => {
     
     return (
         <div className="mb-4 p-3 border rounded">
-            <strong>Foto de perfil:</strong>
             <div className="d-flex align-items-end mb-3">
                 {/* 1. Visualización de la foto actual */}
                 <img
