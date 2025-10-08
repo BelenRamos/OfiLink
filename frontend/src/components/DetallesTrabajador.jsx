@@ -25,10 +25,9 @@ const DetallesTrabajador = ({ perfilTrabajador, setPerfilTrabajador }) => {
   return (
     <>
       {/* Información del Perfil Trabajador */}
-      <p><strong>Oficios:</strong> {perfilTrabajador.oficios.join(', ') || '(a completar)'}</p>
-      <p><strong>Zonas:</strong> {perfilTrabajador.zonas.join(', ') || '(a completar)'}</p>
+      <p><strong>Oficios:</strong> {perfilTrabajador.oficios?.join(', ') || 'No especificados'} </p>
+      <p><strong>Zonas:</strong> {perfilTrabajador.zonas?.join(', ') || 'No especificadas'}</p>
       <p><strong>Descripción:</strong> {perfilTrabajador.descripcion || '(a completar)'}</p>
-      <p><strong>Teléfono:</strong> {perfilTrabajador.telefono || '(a completar)'}</p>
       <p><strong>Puntuación:</strong> {perfilTrabajador.calificacion_promedio ?? '(sin calificación)'}</p>
       
       {/* Switch de Disponibilidad */}

@@ -91,7 +91,7 @@ const PerfilTrabajador = () => {
       <p>{trabajador.descripcion}</p>
       <p>
         <strong>Teléfono:</strong>{' '}
-        <a href={`tel:${trabajador.telefono}`}>{trabajador.telefono}</a>
+        <a href={`tel:${trabajador.contacto}`}>{trabajador.contacto}</a> {/* Contacto? */}
       </p>
 
       <hr />

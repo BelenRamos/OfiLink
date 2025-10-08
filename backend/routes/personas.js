@@ -3,6 +3,7 @@ const router = express.Router();
 const { 
     getPersonasReporte,
     registrarPersona,
+    actualizarPersona,
     getResumenPersonas,
     getPersonas,
     resetPassword,
@@ -18,6 +19,7 @@ router.post('/registrar', registrarPersona);
 router.get('/', getPersonas);
 router.put('/:id/reset-password', resetPassword); 
 router.get('/:id', getPersonaPorId);
+router.put('/:id', actualizarPersona);
 
 
 module.exports = router;

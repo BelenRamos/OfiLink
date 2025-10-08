@@ -150,6 +150,7 @@ const getPersonaPorId = async (req, res) => {
               p.id,
               p.nombre,
               p.mail,
+              p.contacto,
               p.foto AS foto_url,  
               p.fecha_nacimiento,
               CASE p.GrupoId
@@ -331,7 +332,7 @@ const registrarPersona = async (req, res) => {
         request.input('nombre', sql.VarChar, nombre);
         request.input('contraseña', sql.VarChar, hashedPassword);
         request.input('mail', sql.VarChar, mail);
-        request.input('foto', sql.VarBinary, foto || null);
+        request.input('foto', sql.VarChar, foto || null);
         request.input('fecha_nacimiento', sql.Date, fecha_nacimiento);
         request.input('tipo_usuario', sql.VarChar, tipo_usuario);
         request.input('grupoId', sql.Int, grupoId);
@@ -378,6 +379,78 @@ const registrarPersona = async (req, res) => {
     }
 };
 
+//Editar perfil
+const actualizarPersona = async (req, res) => {
+    const id = parseInt(req.params.id);
+    const { 
+        nombre, 
+        contacto, 
+        fecha_nacimiento 
+        // No se permite cambiar mail o contraseña aquí
+    } = req.body;
+
+    try {
+        const pool = await poolPromise;
+        const request = pool.request();
+        
+        // 1. Validaciones (Aseguramos la integridad de los datos)
+        if (!nombre || !fecha_nacimiento) {
+            return res.status(400).json({ error: 'Faltan campos obligatorios para la actualización (nombre o fecha de nacimiento).' });
+        }
+
+        const phoneRegex = /^[0-9]{9,}$/;
+        if (contacto && !phoneRegex.test(contacto)) {
+            return res.status(400).json({ error: 'El teléfono debe tener al menos 9 números y solo dígitos.' });
+        }
+        
+        // Validar edad mínima 18 (Igual que en registrarPersona)
+        const nacimiento = new Date(fecha_nacimiento);
+        const hoy = new Date();
+        let edad = hoy.getFullYear() - nacimiento.getFullYear();
+        const m = hoy.getMonth() - nacimiento.getMonth();
+        if (m < 0 || (m === 0 && hoy.getDate() < nacimiento.getDate())) {
+            edad--;
+        }
+        if (edad < 18) {
+            return res.status(400).json({ error: 'El usuario debe ser mayor de 18 años.' });
+        }
+        
+        // 2. Ejecutar la actualización
+        const result = await request
+            .input('id', sql.Int, id)
+            .input('nombre', sql.VarChar, nombre)
+            .input('contacto', sql.VarChar, contacto || null)
+            .input('fecha_nacimiento', sql.Date, fecha_nacimiento)
+            .query(`
+                UPDATE Persona 
+                SET 
+                    nombre = @nombre, 
+                    contacto = @contacto, 
+                    fecha_nacimiento = @fecha_nacimiento
+                WHERE id = @id
+            `);
+
+        if (result.rowsAffected[0] === 0) {
+            return res.status(404).json({ mensaje: 'Persona no encontrada o no se realizaron cambios.' });
+        }
+
+        // 3. Devolver los datos actualizados
+        // NOTA: Para ser más RESTful, podrías llamar a getPersonaPorId para devolver
+        // el objeto completo, pero por simplicidad devolvemos solo lo que se actualizó.
+        res.json({ 
+            mensaje: 'Perfil actualizado correctamente.',
+            id,
+            nombre,
+            contacto,
+            fecha_nacimiento 
+        });
+
+    } catch (error) {
+        console.error('Error al actualizar persona:', error);
+        res.status(500).json({ error: 'Error interno al actualizar persona.' });
+    }
+};
+
 //Resetear Contraseña -- Solo por el admin
 const resetPassword = async (req, res) => {
   const { id } = req.params;
@@ -414,5 +487,6 @@ module.exports = {
   getPersonaPorId,
   resetPassword,
   subirFoto,
+  actualizarPersona,
   uploadMiddleware // Exportamos la función de middleware con el manejo de errores de Multer
 };
