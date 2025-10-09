@@ -31,6 +31,9 @@ app.use('/api/contrataciones', contratacionesRoutes);
 const solicitudesRoutes = require('./routes/solicitudes');
 app.use('/api/solicitudes', solicitudesRoutes);
 
+const denunciasRoutes = require('./routes/denuncias');
+app.use('/api/denuncias', denunciasRoutes);
+
 //Seguridad
 const rolesRoutes = require('./routes/seguridad/roles');
 app.use('/api/roles', rolesRoutes);

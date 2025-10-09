@@ -5,6 +5,7 @@ import Usuarios from './Usuarios';
 import Contrataciones from './Contrataciones';
 import Reporte from './Reporte';
 import Seguridad from './seguridad/Seguridad';
+import Denuncias from './Denuncias';
 
 const DashboardLayout = () => {
   return (
@@ -20,6 +21,7 @@ const DashboardLayout = () => {
             <li className="list-group-item"><Link to="usuarios">Usuarios</Link></li>
             <li className="list-group-item"><Link to="contrataciones">Contrataciones</Link></li>
             <li className="list-group-item"><Link to="reportes">Reportes</Link></li>
+            <li className="list-group-item"><Link to="denuncias">Denuncias</Link></li> 
             <li className="list-group-item"><Link to="seguridad">Seguridad</Link></li>
           </ul>
         </div>
@@ -30,6 +32,7 @@ const DashboardLayout = () => {
             <Route path="usuarios" element={<Usuarios />} />
             <Route path="contrataciones" element={<Contrataciones />} />
             <Route path="reportes" element={<Reporte />} />
+            <Route path="denuncias" element={<Denuncias />} />
             <Route path="seguridad/*" element={<Seguridad />} />
           </Routes>
         </div>

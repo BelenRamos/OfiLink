@@ -31,7 +31,6 @@ const verificarToken = (req, res, next) => {
   }
 };
 
-
 // Obtener contrataciones
 const getContrataciones = async (req, res) => {
   try {
@@ -92,7 +91,6 @@ const getContrataciones = async (req, res) => {
     res.status(500).json({ error: 'Error al obtener contrataciones' });
   }
 };
-
 
 
 /* const getContrataciones = async (req, res) => {
@@ -189,8 +187,6 @@ const getContrataciones = async (req, res) => {
     res.status(500).json({ error: 'Error al obtener contrataciones' });
   }
 }; */
-
-
 
 // Crear nueva contratación
 const createContratacion = async (req, res) => {
@@ -304,7 +300,6 @@ const manejarAccionContratacion = async (req, res) => {
     res.status(500).json({ error: 'Error al procesar la acción' });
   }
 };
-
 
 // Tarea CRON para actualizar contrataciones a 'En curso'
 const updateContratacionesEnCurso = async () => {

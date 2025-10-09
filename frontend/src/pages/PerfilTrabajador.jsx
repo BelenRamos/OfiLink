@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import FormularioContratacion from '../components/FormularioContratacion';
+import DenunciaModal from "../components/DenunciaModal";
 
 const BACKEND_BASE_URL = 'http://localhost:3000'; 
 const DEFAULT_AVATAR = '/default-avatar.png';
@@ -13,6 +14,7 @@ const PerfilTrabajador = () => {
   const [trabajador, setTrabajador] = useState(null);
   const [reseñas, setReseñas] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [mostrarDenuncia, setMostrarDenuncia] = useState(false);
 
   const [mostrandoFormulario, setMostrandoFormulario] = useState(false);
   //const [contratacionExitosa, setContratacionExitosa] = useState(false);
@@ -115,6 +117,22 @@ const PerfilTrabajador = () => {
           </button>
         )
       )}
+
+      {usuario?.roles_keys?.includes('cliente') && (
+        <button
+          className="btn btn-danger mt-3"
+          onClick={() => setMostrarDenuncia(true)}>
+          Denunciar trabajador
+        </button>
+      )}
+
+      <DenunciaModal
+        show={mostrarDenuncia}
+        onHide={() => setMostrarDenuncia(false)}
+        trabajadorId={trabajador.id}
+        usuario={usuario}
+        onDenunciaCreada={() => console.log("Denuncia enviada")}
+      />
 
       <h3>Reseñas</h3>
       {reseñas.length === 0 ? (
