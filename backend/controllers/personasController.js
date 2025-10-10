@@ -32,6 +32,28 @@ const upload = multer({
   limits: { fileSize: 2 * 1024 * 1024 } // 2MB
 });
 
+// Añade esta función auxiliar al inicio de tu archivo
+/* const registrarAuditoria = async (pool, PersonaId, UsuarioAccionId, TipoCambio, Observaciones, ValorNuevo) => {
+    try {
+        await pool.request()
+            .input('PersonaId', sql.Int, PersonaId)
+            .input('UsuarioAccionId', sql.Int, UsuarioAccionId)
+            .input('TipoCambio', sql.VarChar, TipoCambio)
+            .input('Observaciones', sql.NVarChar, Observaciones || `Acción de ${TipoCambio}`)
+            .input('ColumnaAfectada', sql.VarChar, 'estado_cuenta')
+            .input('ValorNuevo', sql.VarChar, ValorNuevo)
+            .query(`
+                INSERT INTO Auditoria_Persona 
+                    (PersonaId, UsuarioAccionId, TipoCambio, Observaciones, ColumnaAfectada, ValorNuevo)
+                VALUES 
+                    (@PersonaId, @UsuarioAccionId, @TipoCambio, @Observaciones, @ColumnaAfectada, @ValorNuevo)
+            `);
+    } catch (err) {
+        // MUY IMPORTANTE: Si la auditoría falla, solo logueamos el error y NO detenemos el bloqueo/desbloqueo.
+        console.error("Error FATAL al registrar en Auditoria_Persona:", err.message);
+    }
+}; */
+
 
 const uploadMiddleware = (req, res, next) => {
     upload.single('foto')(req, res, (err) => {
@@ -126,6 +148,7 @@ const getPersonas = async (req, res) => {
         id,
         nombre,
         mail,
+        estado_cuenta,
         tipo_usuario AS tipo
       FROM Persona
       ORDER BY nombre
@@ -479,6 +502,73 @@ const resetPassword = async (req, res) => {
   }
 };
 
+
+const modificarEstadoCuenta = async (req, res) => {
+    const { id } = req.params; // ID de la persona a ser afectada
+    const { nuevoEstado, motivo } = req.body; // 'Bloqueado' o 'Activo'
+    
+    // Asumimos que req.usuario.id es inyectado por el middleware JWT del administrador
+    const adminId = req.usuario.id; 
+
+    // Validación de entrada
+    if (!['Activo', 'Bloqueado'].includes(nuevoEstado)) {
+        return res.status(400).json({ error: 'Estado de cuenta inválido. Solo se permite "Activo" o "Bloqueado".' });
+    }
+
+    try {
+        const pool = await poolPromise;
+        
+        // 1. Obtener el estado actual
+        const result = await pool.request()
+            .input('id', sql.Int, id)
+            .query('SELECT estado_cuenta FROM Persona WHERE id = @id');
+        
+        const estadoAnterior = result.recordset[0]?.estado_cuenta;
+        
+        if (!estadoAnterior) {
+             return res.status(404).json({ mensaje: 'Persona no encontrada.' });
+        }
+
+        // 2. (Skipping tipoCambio variable as it's only for audit)
+        
+        // 3. Actualizar el estado en la tabla Persona
+        const updateResult = await pool.request()
+            .input('id', sql.Int, id)
+            .input('nuevoEstado', sql.VarChar, nuevoEstado)
+            .query(`
+                UPDATE Persona 
+                SET estado_cuenta = @nuevoEstado 
+                WHERE id = @id AND estado_cuenta <> @nuevoEstado 
+            `);
+            
+        if (updateResult.rowsAffected[0] === 0 && estadoAnterior !== nuevoEstado) {
+             return res.status(404).json({ mensaje: 'Persona no encontrada o estado sin cambio.' });
+        }
+
+
+        // 4. Registrar la acción en la tabla de Auditoría (COMENTADO PARA DESACTIVAR)
+        /*
+        await registrarAuditoria(
+            pool, 
+            id, 
+            adminId, 
+            tipoCambio, 
+            motivo, 
+            nuevoEstado
+        );
+        */
+
+        res.status(200).json({ 
+            mensaje: `Cuenta de ID ${id} cambiada a estado: ${nuevoEstado}.`,
+            estado: nuevoEstado 
+        });
+
+    } catch (err) {
+        console.error(`Error al modificar el estado de la cuenta:`, err);
+        res.status(500).json({ error: 'Error del servidor al cambiar el estado de la cuenta.' });
+    }
+};
+
 module.exports = {
   getPersonasReporte,
   registrarPersona,
@@ -488,5 +578,6 @@ module.exports = {
   resetPassword,
   subirFoto,
   actualizarPersona,
+  modificarEstadoCuenta,
   uploadMiddleware // Exportamos la función de middleware con el manejo de errores de Multer
 };

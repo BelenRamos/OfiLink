@@ -4,15 +4,12 @@ import { useAuth } from '../hooks/useAuth'; // ✨ Importamos el hook de Auth
 
 
 const Login = () => {
-    // ✨ OBTENEMOS el estado y la función setUsuario del contexto
+    // Obtenemos el estado y la función setUsuario del contexto
     const { usuario, loginUser } = useAuth();
     
     const [credenciales, setCredenciales] = useState({ usuario: '', password: '' });
     const navigate = useNavigate();
 
-    // -----------------------------------------------------
-    // 🔑 LÓGICA CLAVE: Redirigir si el usuario ya está logueado
-    // -----------------------------------------------------
     useEffect(() => {
         // Chequeamos si el contexto ya tiene un usuario cargado
         if (usuario) {
@@ -25,7 +22,6 @@ const Login = () => {
         }
     }, [usuario, navigate]); // Se dispara cuando 'usuario' en el contexto cambia
 
-    // ... (Tu función handleChange sin cambios)
     const handleChange = (e) => {
         setCredenciales({ ...credenciales, [e.target.name]: e.target.value });
     };
@@ -38,6 +34,12 @@ const Login = () => {
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(credenciales),
             });
+
+            if (res.status === 403) {
+                // Obtener el mensaje de error específico del backend
+                const errorData = await res.json();
+                throw new Error(errorData.error); 
+            }
 
             if (!res.ok) throw new Error('Credenciales incorrectas');
 
@@ -53,7 +55,7 @@ const Login = () => {
                 token // ¡Crucial!
             };
             
-            // ✨ NUEVA FUNCIÓN: Usamos loginUser para guardar en localStorage y decodificar el token al instante
+            //Usamos loginUser para guardar en localStorage y decodificar el token al instante
             loginUser(usuarioNormalizado); 
 
 

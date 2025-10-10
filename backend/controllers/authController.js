@@ -20,8 +20,118 @@ const registrarSessionLog = async (personaId, accion) => {
   }
 };
 
-
 const login = async (req, res) => {
+  const { usuario, password } = req.body;
+
+  try {
+    const pool = await poolPromise;
+
+    // ----------------------------------------------------
+    // PASO 1: Consulta Rápida de Autenticación (Solo hash)
+    // ----------------------------------------------------
+    const resultAuth = await pool.request()
+      .input('usuario', sql.VarChar, usuario)
+      .query(`
+        SELECT p.id, p.nombre, p.mail, p.contraseña, p.tipo_usuario, p.GrupoId, p.estado_cuenta
+        FROM Persona p
+        WHERE p.mail = @usuario;
+      `);
+
+    if (resultAuth.recordset.length === 0) {
+      return res.status(401).json({ error: 'Credenciales inválidas' });
+    }
+
+    const usuarioAuth = resultAuth.recordset[0];
+
+    // Validar esatdo de cuenta
+    if (usuarioAuth.estado_cuenta === 'Bloqueado') {
+      return res.status(403).json({ error: 'Tu cuenta ha sido bloqueada por una sanción administrativa.' });
+    }
+    if (usuarioAuth.estado_cuenta === 'Eliminado') {
+      return res.status(403).json({ error: 'Esta cuenta ha sido eliminada por solicitud del usuario.' });
+    }
+
+    // Validar contraseña
+    const passwordValida = await bcrypt.compare(password, usuarioAuth.contraseña);
+    if (!passwordValida) {
+      return res.status(401).json({ error: 'Credenciales inválidas' });
+    }
+    
+    // ----------------------------------------------------
+    // PASO 2: Consulta Lenta (Roles y Permisos) - Solo si autentica
+    // ----------------------------------------------------
+    // Usamos el ID del grupo para optimizar las subconsultas
+    const grupoId = usuarioAuth.GrupoId;
+
+    const resultData = await pool.request()
+      .input('grupoId', sql.Int, grupoId)
+      .query(`
+        SELECT
+            g.Nombre AS grupo,
+            (
+                SELECT STRING_AGG(r.Nombre, ',')
+                FROM Grupo_Rol gr
+                JOIN Rol r ON gr.RolId = r.Id
+                WHERE gr.GrupoId = @grupoId
+            ) AS roles,
+            (
+                SELECT STRING_AGG(LOWER(REPLACE(r.Nombre, ' ', '')), ',')
+                FROM Grupo_Rol gr
+                JOIN Rol r ON gr.RolId = r.Id
+                WHERE gr.GrupoId = @grupoId
+            ) AS roles_keys,
+            (
+                SELECT STRING_AGG(perm.Nombre, ',')
+                FROM Rol r
+                JOIN Rol_Permiso rp ON r.Id = rp.RolId
+                JOIN Permiso perm ON rp.PermisoId = perm.Id
+                WHERE r.Id IN (
+                    SELECT RolId FROM Grupo_Rol gr
+                    WHERE gr.GrupoId = @grupoId
+                )
+            ) AS permisos_keys
+        FROM Grupo g
+        WHERE g.Id = @grupoId;
+      `);
+
+    // Juntar los resultados de ambas consultas
+    const usuarioCompleto = { ...usuarioAuth, ...resultData.recordset[0] };
+    
+    // Preparar campos del usuario
+    usuarioCompleto.roles = usuarioCompleto.roles ? usuarioCompleto.roles.split(',') : [];
+    usuarioCompleto.roles_keys = usuarioCompleto.roles_keys ? usuarioCompleto.roles_keys.split(',') : [];
+    usuarioCompleto.permisos_keys = usuarioCompleto.permisos_keys ? usuarioCompleto.permisos_keys.split(',') : [];
+
+    // Generar JWT (usando usuarioCompleto)
+    const token = jwt.sign(
+      {
+        id: usuarioCompleto.id,
+        nombre: usuarioCompleto.nombre,
+        mail: usuarioCompleto.mail,
+        GrupoId: usuarioCompleto.GrupoId,
+        roles_keys: usuarioCompleto.roles_keys,
+        permisos_keys: usuarioCompleto.permisos_keys,
+      },
+      SECRET_KEY,
+      { expiresIn: '2h' }
+    );
+
+    // Limpiar hash
+    delete usuarioCompleto.contraseña;
+
+    // Log de login
+    registrarSessionLog(usuarioCompleto.id, 'login');
+
+    res.json({ usuario: usuarioCompleto, token });
+
+  } catch (err) {
+    console.error('Error al iniciar sesión:', err);
+    res.status(500).json({ error: 'Error del servidor' });
+  }
+};
+
+//Esta es de la ultima version
+/* const login = async (req, res) => {
   const { usuario, password } = req.body;
 
   try {
@@ -119,11 +229,10 @@ const login = async (req, res) => {
     console.error('Error al iniciar sesión:', err);
     res.status(500).json({ error: 'Error del servidor' });
   }
-};
+}; */
 
-
-/* 
-const login = async (req, res) => {
+//Esta ya no iria mas
+/* const login = async (req, res) => {
   const { usuario, password } = req.body;
 
   try {

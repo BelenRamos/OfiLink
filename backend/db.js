@@ -7,6 +7,7 @@ const config = {
   server: 'localhost',
   port: 1433, 
   database: 'OfiLinkDB',
+  requestTimeout: 30000,
   options: {
     encrypt: false,
     trustServerCertificate: true,

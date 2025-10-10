@@ -18,4 +18,16 @@ const autenticarJWT = (req, res, next) => {
   }
 };
 
-module.exports = autenticarJWT;
+const isAdmin = (req, res, next) => {
+    // Implementación: Verifica si req.usuario.GrupoId es 1 (o el ID de administrador)
+    if (req.usuario && req.usuario.GrupoId === 1) { 
+        next();
+    } else {
+        res.status(403).json({ error: 'Acceso denegado: Se requiere rol de administrador' });
+    }
+};
+
+module.exports = { 
+    autenticarJWT, 
+    isAdmin
+};
