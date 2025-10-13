@@ -10,7 +10,6 @@ const Usuarios = () => {
     fetchUsuarios();
   }, []);
 
-    // 1. 🔑 MIGRAR fetchUsuarios a apiFetch
   const fetchUsuarios = async () => {
       try {
           // Asumimos que esta ruta está protegida por Admin
@@ -22,10 +21,8 @@ const Usuarios = () => {
       }
   };
 
-  // 2. 🔑 MIGRAR resetearContraseña a apiFetch
   const resetearContraseña = async (id) => {
       try {
-          // Asumimos que esta ruta está protegida por Admin
           const response = await apiFetch(`/api/personas/${id}/reset-password`, {
               method: 'PUT'
           });
@@ -36,6 +33,25 @@ const Usuarios = () => {
           setMensaje(`Error al resetear contraseña: ${error.message}`);
       }
   };
+  const eliminarCuenta = async (usuarioId) => {
+    if (!window.confirm("¿Está seguro de que desea ELIMINAR LÓGICAMENTE esta cuenta? El usuario deberá contactar a un administrador para reactivarla.")) {
+        return;
+    }
+    
+    try {
+        await apiFetch(`/api/personas/${usuarioId}/eliminar`, {
+            method: 'PUT'
+        });
+        
+        setMensaje(`La cuenta con ID ${usuarioId} fue marcada como eliminada.`);
+        fetchUsuarios(); 
+        
+    } catch (error) {
+        console.error('Error al eliminar la cuenta:', error.message);
+        setMensaje(`Error al eliminar: ${error.message}`);
+    }
+};
+
 
 /*   const fetchUsuarios = async () => {
     const response = await axios.get('/api/personas');
@@ -53,21 +69,17 @@ const Usuarios = () => {
     }
   }; */
 
-
-  // -----------------------------------------------------
-  // 🔑 NUEVA FUNCIÓN: Toggle Bloqueo
-  // -----------------------------------------------------
 async function toggleBloqueo(usuario) {
-    // Determinar el nuevo estado y acción
-    const nuevoEstado = usuario.estado_cuenta === 'Activo' ? 'Bloqueado' : 'Activo';
-    const accion = nuevoEstado === 'Bloqueado' ? 'bloquear' : 'desbloquear';
-    let motivo = '';
+    // Determinar el nuevo estado y acción
+    const nuevoEstado = usuario.estado_cuenta === 'Activo' ? 'Bloqueado' : 'Activo';
+    const accion = nuevoEstado === 'Bloqueado' ? 'bloquear' : 'desbloquear';
+    let motivo = '';
 
-    // Si vamos a bloquear, pedimos el motivo --> Para despues en la auditoria
-    if (nuevoEstado === 'Bloqueado') {
-      motivo = prompt(`Ingrese el motivo para bloquear a ${usuario.nombre}:`);
-      if (!motivo) return;
-    }
+    // Si se va a bloquear, pedimos el motivo --> Para despues en la auditoria
+    if (nuevoEstado === 'Bloqueado') {
+      motivo = prompt(`Ingrese el motivo para bloquear a ${usuario.nombre}:`);
+      if (!motivo) return;
+    }
 
     try {
 
@@ -79,15 +91,20 @@ async function toggleBloqueo(usuario) {
             }
         });
 
-        setMensaje(`La cuenta de ${usuario.nombre} fue ${accion === 'bloquear' ? 'bloqueada' : 'desbloqueada'} exitosamente.`);
+        let mensajeExito;
+        if (usuario.estado_cuenta === 'Eliminado') {
+            mensajeExito = `La cuenta de ${usuario.nombre} fue reactivada exitosamente.`;
+        } else {
+            mensajeExito = `La cuenta de ${usuario.nombre} fue ${accion === 'bloquear' ? 'bloqueada' : 'desbloqueada'} exitosamente.`;
+        }
+        setMensaje(mensajeExito);
         fetchUsuarios(); 
 
-    } catch (error) {
-          console.error('Error al cambiar el estado de la cuenta:', error.message);
-          setMensaje(`Error al ${accion} la cuenta: ${error.message}`);
-    }
+    } catch (error) {
+        console.error('Error al cambiar el estado de la cuenta:', error.message);
+        setMensaje(`Error al ${accion} la cuenta: ${error.message}`);
+    }
 }
-  // -----------------------------------------------------
 
   const usuariosFiltrados = filtroTipo
     ? usuarios.filter(u => u.tipo === filtroTipo)
@@ -130,7 +147,7 @@ async function toggleBloqueo(usuario) {
               <td>{usuario.mail}</td>
               <td>{usuario.tipo}</td>
               <td>
-                {/* 🔑 VISUALIZACIÓN DEL ESTADO */}
+                {/*VISUALIZACIÓN DEL ESTADO */}
                 <span className={`badge ${usuario.estado_cuenta === 'Activo' ? 'bg-success' : 'bg-danger'}`}>
                     {usuario.estado_cuenta}
                 </span>
@@ -142,7 +159,8 @@ async function toggleBloqueo(usuario) {
                 >
                   🔑 Resetear
                 </button>
-                {/* 🔑 BOTÓN CONDICIONAL DE BLOQUEO/DESBLOQUEO */}
+
+                {/* GESTIÓN DE ESTADO (Activo/Bloqueado/Desbloqueo) */}
                 {usuario.estado_cuenta !== 'Eliminado' && (
                     <button
                         className={`btn btn-sm ${usuario.estado_cuenta === 'Activo' ? 'btn-danger' : 'btn-success'}`}
@@ -151,8 +169,26 @@ async function toggleBloqueo(usuario) {
                         {usuario.estado_cuenta === 'Activo' ? '🚫 Bloquear' : '🔓 Desbloquear'}
                     </button>
                 )}
-              </td>
+                
+                {/*BOTÓN DE REACTIVAR, solo si el estado es Eliminado*/}
+                {usuario.estado_cuenta === 'Eliminado' && (
+                    <button
+                        className="btn btn-sm btn-success"
+                        onClick={() => toggleBloqueo({ ...usuario, estado_cuenta: 'Bloqueado' })}
+                    >
+                        🔄 Reactivar
+                    </button>
+                )}
 
+                {usuario.estado_cuenta !== 'Eliminado' && (
+                    <button
+                        className="btn btn-sm btn-dark ms-2"
+                        onClick={() => eliminarCuenta(usuario.id)}
+                    >
+                        🗑️ Eliminar
+                    </button>
+                )}
+              </td>
             </tr>
           ))}
         </tbody>

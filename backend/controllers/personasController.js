@@ -32,7 +32,7 @@ const upload = multer({
   limits: { fileSize: 2 * 1024 * 1024 } // 2MB
 });
 
-// Añade esta función auxiliar al inicio de tu archivo
+// Función auxiliar para hacer la auditoria --> TODAVIA NO
 /* const registrarAuditoria = async (pool, PersonaId, UsuarioAccionId, TipoCambio, Observaciones, ValorNuevo) => {
     try {
         await pool.request()
@@ -118,6 +118,7 @@ const subirFoto = async (req, res) => {
   }
 };
 
+//ESTE ES EL QUE LLAMA PARA ADMIN --> ACTUALIZAR  A ACTIVOS
 const getResumenPersonas = async (req, res) => {
   try {
     const pool = await poolPromise;
@@ -569,6 +570,47 @@ const modificarEstadoCuenta = async (req, res) => {
     }
 };
 
+const eliminarCuentaLogica = async (req, res) => {
+    const personaLogueadaId = req.usuario.id; 
+
+    // ID del objetivo a eliminar:
+    // Si la ruta tiene ':id' (Admin), usa ese ID. Si no tiene (mi-perfil/eliminar), usa el propio ID del logueado.
+    const targetId = req.params.id || personaLogueadaId; 
+    // Si el usuario no es admin Y el ID que intenta eliminar no es el suyo, se deniega el acceso.
+    const esAdmin = req.usuario.roles_keys?.includes('administrador');
+
+    if (!esAdmin && targetId.toString() !== personaLogueadaId.toString()) {
+        return res.status(403).json({ 
+            error: 'Acceso denegado: Solo puedes eliminar tu propia cuenta a través de esta ruta.' 
+        });
+    }
+
+    // Si llegamos aquí:
+    // O es Admin y está usando la ruta con ID.
+    // O es el propio usuario eliminándose a sí mismo (usando cualquiera de las dos rutas, pero targetId es su propio ID).
+    
+    try {
+        const pool = await poolPromise;
+        
+        await pool.request()
+            .input('id', sql.Int, targetId)
+            .query(`
+                UPDATE Persona
+                SET estado_cuenta = 'Eliminado'
+                WHERE id = @id;
+            `);
+            
+        // Registrar acción en auditoría --> TODAVIA NO
+        // registrarAuditoria(personaLogueadaId, 'Eliminación Lógica', 'Persona', targetId); 
+
+        res.status(200).json({ mensaje: `Cuenta con ID ${targetId} marcada como 'Eliminado' exitosamente.` });
+        
+    } catch (err) {
+        console.error('Error al eliminar lógicamente la cuenta:', err);
+        res.status(500).json({ error: 'Error del servidor al eliminar la cuenta.' });
+    }
+};
+
 module.exports = {
   getPersonasReporte,
   registrarPersona,
@@ -579,5 +621,6 @@ module.exports = {
   subirFoto,
   actualizarPersona,
   modificarEstadoCuenta,
+  eliminarCuentaLogica,
   uploadMiddleware // Exportamos la función de middleware con el manejo de errores de Multer
 };

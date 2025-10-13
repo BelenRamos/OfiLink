@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { apiFetch } from '../utils/apiFetch';
+import { useAuth } from '../hooks/useAuth';
 
 // Componentes Reutilizados
 import FotoPerfil from '../components/FotoPerfil';
@@ -16,10 +17,13 @@ const MiPerfil = () => {
   const [usuario, setUsuario] = useState(null);
   const [perfilTrabajador, setPerfilTrabajador] = useState(null);
   const [contrataciones, setContrataciones] = useState([]);
+  const [mensaje, setMensaje] = useState(''); 
+  const { usuario: usuarioContext, logoutUser } = useAuth();
   
   // Estados para controlar la visualización de los formularios de edición
-  const [isEditing, setIsEditing] = useState(false); // Edición de datos básicos (Nombre, Contacto)
-  const [isWorkerEditing, setIsWorkerEditing] = useState(false); // Edición de perfil de trabajador (Oficios, Zonas)
+  const [isEditing, setIsEditing] = useState(false); 
+  const [isWorkerEditing, setIsWorkerEditing] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false); 
 
   // 1. Manejo de Actualización de Datos Básicos
   const handlePerfilUpdate = (datosActualizados) => {
@@ -32,15 +36,15 @@ const MiPerfil = () => {
     setUsuario(nuevoUsuario);
     // Actualizar también en localStorage para persistencia de sesión
     localStorage.setItem('usuarioActual', JSON.stringify(nuevoUsuario));
+    setMensaje('¡Perfil actualizado con éxito!');
     
-    // Ocultar el formulario después de la actualización exitosa
     setIsEditing(false);
   };
   
   // 2. Manejo de Actualización de Perfil de Trabajador
   const handleWorkerPerfilUpdate = (datosActualizados) => {
     setPerfilTrabajador(datosActualizados);
-    // Ocultar el formulario después de la actualización exitosa
+    setMensaje('¡Perfil de trabajador actualizado con éxito!');
     setIsWorkerEditing(false); 
   };
   
@@ -58,46 +62,99 @@ const MiPerfil = () => {
         foto_url: nuevaUrl
       }));
     }
+    setMensaje('¡Foto de perfil actualizada!');
   };
 
-  // 4. Carga Inicial de Datos (se mantiene la lógica original)
-  useEffect(() => {
-    const cargarDatos = async () => {
-      const usuarioGuardado = localStorage.getItem('usuarioActual');
-      if (!usuarioGuardado) {
-        navigate('/login');
-        return;
-      }
+  // 4. Funcion para eliminar la cuenta
+  const handleEliminarCuenta = async () => {
+    if (!usuario || !usuario.id) return;
 
-      const parsedUsuario = JSON.parse(usuarioGuardado);
+    setIsDeleting(true);
 
-      try {
-        const dataPersona = await apiFetch(`/api/personas/${parsedUsuario.id}`);
-        const usuarioActualizado = {
-            ...parsedUsuario, 
-            ...dataPersona, 
-            roles_keys: parsedUsuario.roles_keys
-        };
+    // Nota: Reemplazaremos por un modal
+    const confirmacion = window.prompt("¿Está absolutamente seguro de eliminar su cuenta? Escriba 'ELIMINAR MI CUENTA' para confirmar. (La reactivación requerirá contacto con un administrador)");
+    
+    if (confirmacion !== 'ELIMINAR MI CUENTA') {
+      setMensaje('Eliminación cancelada.');
+      setIsDeleting(false);
+      return;
+    }
 
-        setUsuario(usuarioActualizado);
-        localStorage.setItem('usuarioActual', JSON.stringify(usuarioActualizado)); 
+      try {
+          await apiFetch(`/api/personas/mi-perfil/eliminar`, { 
+              method: 'PUT'
+          });
+          
+          await logoutUser(); 
+          setMensaje('Su cuenta ha sido eliminada exitosamente. Redirigiendo...');
+/*           setTimeout(() => {
+            navigate('/'); 
+          }, 1000); */ 
+      
+    } catch (error) {
+        console.error('Error al eliminar la cuenta:', error);
+        setMensaje(`Error al eliminar la cuenta: ${error.message || 'Error de conexión.'}`);
+        setIsDeleting(false); 
+    }
+  };
 
-        if (usuarioActualizado.roles_keys?.includes('trabajador')) {
-          const dataTrabajador = await apiFetch(`/api/trabajadores/${usuarioActualizado.id}`);
-          setPerfilTrabajador(dataTrabajador); 
-        }
+  // 5. Carga Inicial de Datos
+  useEffect(() => {
+    if (isDeleting) {
+      // El useEffect ignora la falta de usuario si isDeleting es true
+      return; 
+    }
 
-        if (parsedUsuario.roles_keys?.includes('cliente')) {
-          const dataContrataciones = await apiFetch('/api/contrataciones');
-          setContrataciones(dataContrataciones);
-        }
-      } catch (err) {
-        console.error('Error cargando datos:', err);
-      }
-    };
+    if (!usuarioContext) {
+      const usuarioGuardado = localStorage.getItem('usuarioActual');
+      if (!usuarioGuardado) {
+        navigate('/login'); 
+        return;
+      }
+    }
+    
+    const parsedUsuario = usuarioContext || JSON.parse(localStorage.getItem('usuarioActual'));
+    
+    const cargarDatos = async () => {
+      try {
+        const dataPersona = await apiFetch(`/api/personas/${parsedUsuario.id}`);
+        if (dataPersona.estado_cuenta === 'Eliminado') {
+          logoutUser(); 
+          setMensaje("Su cuenta ha sido marcada como eliminada. Contacte a un administrador para reactivarla.");
+          setTimeout(() => {
+            navigate('/login');
+          }, 3000);
+          return;
+        }
+        
+        const usuarioActualizado = {
+            ...parsedUsuario, 
+            ...dataPersona, 
+            roles_keys: parsedUsuario.roles_keys
+        };
 
-    cargarDatos();
-  }, [navigate]);
+        setUsuario(usuarioActualizado);
+        localStorage.setItem('usuarioActual', JSON.stringify(usuarioActualizado)); 
+
+        if (usuarioActualizado.roles_keys?.includes('trabajador')) {
+          const dataTrabajador = await apiFetch(`/api/trabajadores/${usuarioActualizado.id}`);
+          setPerfilTrabajador(dataTrabajador); 
+        }
+
+        if (parsedUsuario.roles_keys?.includes('cliente')) {
+          const dataContrataciones = await apiFetch('/api/contrataciones');
+          setContrataciones(dataContrataciones);
+        }
+      } catch (err) {
+        console.error('Error cargando datos:', err);
+        setMensaje('Error al cargar los datos del perfil.');
+      }
+    };
+
+    if (parsedUsuario) {
+      cargarDatos();
+    }
+  }, [navigate, usuarioContext, logoutUser, isDeleting]);
 
   if (!usuario) return null;
 
@@ -105,6 +162,7 @@ const MiPerfil = () => {
     <div className="container mt-4">
       <h2>Mi Perfil</h2>
       <hr />
+      {mensaje && <div className="alert alert-info">{mensaje}</div>} 
       
       {/* Foto de Perfil (siempre visible) */}
       <FotoPerfil
@@ -118,16 +176,25 @@ const MiPerfil = () => {
       <div className="card p-3 mb-4">
         <div className="d-flex justify-content-between align-items-center mb-3">
             <h4 className="mb-0">Datos Personales</h4>
-            <button 
-                className="btn btn-outline-primary btn-sm" 
-                onClick={() => setIsEditing(prev => !prev)} // Alternar edición
-            >
-                {isEditing ? 'Ocultar Edición' : 'Editar Datos'}
-            </button>
+            <div>
+                <button 
+                    className="btn btn-outline-primary btn-sm me-2" 
+                    onClick={() => setIsEditing(prev => !prev)} // Alternar edición
+                >
+                    {isEditing ? 'Ocultar Edición' : 'Editar Datos'}
+                </button>
+                
+                {/* BOTÓN DE ELIMINAR CUENTA*/}
+                <button
+                    className="btn btn-danger btn-sm"
+                    onClick={handleEliminarCuenta}
+                >
+                    🗑️ Eliminar Mi Cuenta
+                </button>
+            </div>
         </div>
         
         {isEditing && usuario ? (
-            // Muestra el formulario si isEditing es true
             <FormularioEditarPerfil
                 usuario={usuario}
                 onUpdate={handlePerfilUpdate}
@@ -168,7 +235,6 @@ const MiPerfil = () => {
                     onCancel={() => setIsWorkerEditing(false)}
                 />
             ) : (
-                // Muestra la vista de detalles del trabajador
                 <DetallesTrabajador 
                     perfilTrabajador={perfilTrabajador} 
                     setPerfilTrabajador={setPerfilTrabajador}
@@ -180,7 +246,10 @@ const MiPerfil = () => {
       {/* ------------------------------------------------------------- */}
       {/* 3. SECCIÓN DE CONTRATACIONES DE CLIENTE */}
       {usuario.roles_keys?.includes('cliente') && (
-        <ListaContratacionesCliente contrataciones={contrataciones} />
+        <ListaContratacionesCliente 
+            contrataciones={contrataciones} 
+            setContrataciones={setContrataciones}
+        />
       )}
     </div>
   );

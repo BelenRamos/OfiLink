@@ -2,7 +2,7 @@ import React from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import logo from '../assets/logo1.png';
 import './Navbar.css';
-import { useAuth } from '../hooks/useAuth'; // 🔑 Importamos el hook
+import { useAuth } from '../hooks/useAuth'; //Importamos el hook
 
 const Navbar = () => {
     const { usuario, tieneRol, logoutUser } = useAuth();
@@ -11,8 +11,6 @@ const Navbar = () => {
     const handleLogout = async () => {
         // La función logoutUser es asíncrona y espera el fetch al backend.
         await logoutUser(); 
-        
-        // Una vez que el estado está limpio, navegamos.
         navigate('/login');
     };
 
@@ -52,42 +50,33 @@ const Navbar = () => {
                     {/* El Navbar reacciona a 'usuario' del contexto. */}
                     {usuario ? (
                         <>
-                            {/* Los chequeos de rol ahora usan la función del contexto */}
                             {tieneRol('cliente') && (
                                 <>
                                     <li className="nav-item"><Link className="nav-link" to="/buscar">Buscar</Link></li>
                                     <li className="nav-item"><Link className="nav-link" to="/mi-perfil">Mi perfil</Link></li>
                                     
-                                    {/* ✅ Mis Solicitudes (para clientes) */}
+                                    {/* Mis Solicitudes (para clientes) */}
                                     <li className="nav-item"><Link className="nav-link" to="/mis-solicitudes">Mis Solicitudes</Link></li>
-
-                                    {/* Mantenemos Mis Contrataciones si las gestionan aparte */}
                                     <li className="nav-item"><Link className="nav-link" to="/mis-contrataciones">Mis Contrataciones</Link></li>
                                 </>
                             )}
 
                             {tieneRol('trabajador') && (
                                 <>
-                                    {/* ✅ Solicitudes Clientes (para trabajadores) */}
+                                    {/* Solicitudes Clientes (para trabajadores) */}
                                     <li className="nav-item"><Link className="nav-link" to="/solicitudes-clientes">Trabajos Disponibles</Link></li>
                                     <li className="nav-item"><Link className="nav-link" to="/mi-perfil">Mi perfil</Link></li>
                                 </>
                             )}
 
                             <li className="nav-item">
-                                {/* Llama a la función simplificada handleLogout */}
                                 <button className="nav-link btn btn-link logout-btn" onClick={handleLogout}>
                                     Cerrar sesión
                                 </button>
                             </li>
                         </>
-                    ) : (
-                        // Enlaces para usuarios no autenticados (Login/Registro) --> SACAR
-                        <>
-                            <li className="nav-item"><Link className="nav-link" to="/login">Iniciar Sesión</Link></li>
-                            <li className="nav-item"><Link className="nav-link" to="/registro">Registro</Link></li>
-                        </>
-                    )}
+                    ) : (null)
+                    }
                 </ul>
             </div>
         </nav>
