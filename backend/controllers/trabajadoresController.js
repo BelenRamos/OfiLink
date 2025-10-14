@@ -1,7 +1,6 @@
 const { poolPromise, sql } = require('../db');
 
 
-//ACTUALIZAR --> si estan bloqueados o eliminados no aparecen, solo activos
 const filtrarTrabajadores = async (req, res) => {
   const { oficio, zona } = req.query;
   const zonaNombre = zona?.replace('Zona ', '');
@@ -11,6 +10,7 @@ const filtrarTrabajadores = async (req, res) => {
     const request = pool.request();
 
     let filtros = `1 = 1`;
+    filtros += ` AND p.estado_cuenta = 'Activo'`;
 
     if (oficio?.trim()) {
       request.input('oficio', sql.VarChar, `%${oficio.trim().toLowerCase()}%`);

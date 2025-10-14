@@ -118,7 +118,6 @@ const subirFoto = async (req, res) => {
   }
 };
 
-//ESTE ES EL QUE LLAMA PARA ADMIN --> ACTUALIZAR  A ACTIVOS
 const getResumenPersonas = async (req, res) => {
   try {
     const pool = await poolPromise;
@@ -131,6 +130,7 @@ const getResumenPersonas = async (req, res) => {
         (SELECT COUNT(*) FROM Contratacion) AS totalContrataciones,
         (SELECT COUNT(*) FROM Oficio) AS totalOficios
       FROM Persona
+      WHERE estado_cuenta IN ('Activo', 'Bloqueado')
     `);
 
     res.json(result.recordset[0]);
