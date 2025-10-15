@@ -23,7 +23,15 @@ export const apiFetch = async (url, options = {}) => {
 
   if (!response.ok) {
     const errorData = await response.json().catch(() => ({}));
-    throw new Error(errorData.error || `HTTP error ${response.status}`);
+    
+    // Crear un nuevo Error
+    const error = new Error(errorData.error || `HTTP error ${response.status}`);
+    
+    // 💡 ADJUNTAR LA RESPUESTA COMPLETA DEL SERVIDOR al objeto Error
+    // Esto hace que 'error.response' esté disponible en el catch de Oficios.jsx
+    error.response = errorData; 
+    
+    throw error;
   }
 
   return response.json();

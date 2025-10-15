@@ -72,10 +72,8 @@ const FotoPerfil = ({ userId, currentFotoUrl, onFotoUpdate }) => {
                 {/* 2. CONTROLES DE SUBIDA */}
                 <div className="d-flex flex-column">
                     
-                    {/* Botón principal: Muestra el input O es el input si no hay foto */}
+                    {/*Muestra el input O es el input si no hay foto */}
                     {(!currentFotoUrl || currentFotoUrl === '/default-avatar.png' || mostrarInput) ? (
-                        
-                        // Si no hay foto O el usuario ha hecho clic en cambiar
                         <div>
                             <input
                                 type="file"
@@ -86,7 +84,7 @@ const FotoPerfil = ({ userId, currentFotoUrl, onFotoUpdate }) => {
                             />
                             <small className="form-text text-muted">Máx. 2MB. Formatos: JPG, PNG.</small>
                             
-                            {/* Opcional: Botón para cancelar la subida */}
+                            {/*Botón para cancelar la subida */}
                             {mostrarInput && (
                                 <button 
                                     className="btn btn-link btn-sm text-danger mt-1 p-0"
@@ -99,7 +97,7 @@ const FotoPerfil = ({ userId, currentFotoUrl, onFotoUpdate }) => {
                         
                     ) : (
                         
-                        // Si SÍ hay foto y el input está oculto, mostramos el botón "Cambiar"
+                        // Si SÍ hay foto y el input está oculto, se muestra el botón "Cambiar"
                         <button 
                             className="btn btn-sm btn-outline-secondary"
                             onClick={() => setMostrarInput(true)} // Al hacer clic, muestra el input
