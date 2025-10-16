@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { apiFetch } from '../../utils/apiFetch'; 
 import OficioModal from '../../components/OficioModal';
+import GenericConfirmModal from '../../components/GenericConfirmModal'; // 💡 Importamos el modal genérico
 
 const Oficios = () => {
     const [oficios, setOficios] = useState([]);
@@ -8,6 +9,10 @@ const Oficios = () => {
     const [mensaje, setMensaje] = useState('');
     const [showModal, setShowModal] = useState(false);
     const [currentOficio, setCurrentOficio] = useState(null); 
+    
+    // 💡 NUEVOS ESTADOS para el modal de confirmación
+    const [showConfirmModal, setShowConfirmModal] = useState(false);
+    const [itemToDelete, setItemToDelete] = useState(null); // Objeto del oficio a eliminar
 
     const API_BASE_URL = '/api/oficios';
 
@@ -15,6 +20,13 @@ const Oficios = () => {
         fetchOficios();
     }, []);
 
+    const extractErrorMessage = (error, defaultMessage) => {
+        const errorBody = error.response || {};
+        const errorMessage = errorBody.error || defaultMessage;
+        return errorMessage + (errorBody.details ? ` (${errorBody.details})` : '');
+    };
+
+    // --- CARGAR OFICIOS ---
     const fetchOficios = async () => {
         setLoading(true);
         try {
@@ -22,32 +34,35 @@ const Oficios = () => {
             setOficios(response);
             setMensaje('');
         } catch (error) {
+            const fullMessage = extractErrorMessage(error, 'Error al cargar la lista de oficios.');
             console.error('Error al cargar oficios:', error);
-            setMensaje('Error al cargar la lista de oficios.');
+            setMensaje(fullMessage);
         } finally {
             setLoading(false);
         }
     };
     
     const handleAddClick = () => {
-        setCurrentOficio(null); // Modo Agregar (oficio nulo)
+        setCurrentOficio(null); 
         setShowModal(true);
     };
 
     const handleEditClick = (oficio) => {
-        setCurrentOficio(oficio); // Modo Editar (oficio con datos)
+        setCurrentOficio(oficio); 
         setShowModal(true);
     };
 
     const handleCloseModal = () => {
         setShowModal(false);
-        setCurrentOficio(null); // Limpiar el estado del oficio actual
+        setCurrentOficio(null);
     };
 
+    // --- GUARDAR OFICIO (handleSaveOficio) ---
     const handleSaveOficio = async (oficioData) => {
         const isEdit = !!currentOficio;
         const url = isEdit ? `${API_BASE_URL}/${currentOficio.Id}` : API_BASE_URL;
         const method = isEdit ? 'PUT' : 'POST';
+        const action = isEdit ? 'actualizar' : 'agregar';
 
         try {
             await apiFetch(url, {
@@ -55,45 +70,68 @@ const Oficios = () => {
                 body: oficioData
             });
             
-            setMensaje(`Oficio ${isEdit ? 'actualizado' : 'agregado'} con éxito.`);
+            setMensaje(`Oficio ${action} con éxito. ✅`);
             handleCloseModal();
             fetchOficios(); 
 
         } catch (error) {
-            console.error(`Error al ${isEdit ? 'actualizar' : 'agregar'} oficio:`, error.message);
-            setMensaje(`Error al guardar el oficio: ${error.message}`);
+            const defaultMessage = `Error al ${action} el oficio.`;
+            const fullMessage = extractErrorMessage(error, defaultMessage);
+            
+            console.error(`Error al ${action} oficio:`, error);
+            setMensaje(fullMessage);
         }
     };
+    
+    // 💡 NUEVA FUNCIÓN: Abre el modal de confirmación para eliminar
+    const handleOpenConfirmDelete = (oficio) => {
+        setItemToDelete(oficio);
+        setShowConfirmModal(true);
+    };
 
-    // --- ELIMINAR OFICIO ---
+    // 💡 NUEVA FUNCIÓN: Cierra el modal de confirmación
+    const handleCloseConfirmDelete = () => {
+        setShowConfirmModal(false);
+        setItemToDelete(null);
+    };
 
-    const handleDelete = async (id, nombre) => {
-        if (!window.confirm(`⚠️ ¿Está seguro de que desea eliminar el oficio "${nombre}"? Esta acción eliminará registros en Trabajador_Oficio.`)) {
-            return;
-        }
-
+    // --- ELIMINAR OFICIO (handleDelete) - MODIFICADA para ser llamada desde el modal ---
+    const handleDelete = async () => {
+        // La información del oficio está en itemToDelete
+        const { Id, Nombre } = itemToDelete;
+        
+        // 1. Cerramos el modal de confirmación
+        handleCloseConfirmDelete();
+        
         try {
-            await apiFetch(`${API_BASE_URL}/${id}`, {
+            await apiFetch(`${API_BASE_URL}/${Id}`, {
                 method: 'DELETE'
             });
             
-            setMensaje(`Oficio "${nombre}" eliminado con éxito.`);
+            setMensaje(`Oficio "${Nombre}" eliminado con éxito. 🗑️`);
             fetchOficios(); 
 
         } catch (error) {
 
-        const errorBody = error.response || {}; 
-        const errorMessage = errorBody.error || "Error inesperado al eliminar el oficio.";
+            const defaultMessage = "Error inesperado al eliminar el oficio.";
+            const fullMessage = extractErrorMessage(error, defaultMessage);
         
-        const fullMessage = errorMessage + (errorBody.details ? ` (${errorBody.details})` : '');
-
-        console.error("Error al eliminar:", error);
-        
-        setMensaje(fullMessage);
+            console.error("Error al eliminar:", error);
+            
+            setMensaje(fullMessage);
         }
     };
 
     if (loading) return <div className="container mt-4"><p>Cargando oficios...</p></div>;
+
+    // Lógica para las propiedades del modal de confirmación
+    const deleteModalProps = itemToDelete ? {
+        title: "⚠️ Confirmar Eliminación",
+        message: `¿Está seguro de que desea eliminar el oficio "${itemToDelete.Nombre}"?`,
+        confirmText: "Eliminar",
+        confirmButtonClass: "btn-danger",
+        cancelText: "Cancelar"
+    } : {};
 
     return (
         <div className="container mt-4">
@@ -135,7 +173,8 @@ const Oficios = () => {
                                     </button>
                                     <button
                                         className="btn btn-sm btn-danger"
-                                        onClick={() => handleDelete(oficio.Id, oficio.Nombre)}
+                                        // 💡 Llamamos a la nueva función que abre el modal
+                                        onClick={() => handleOpenConfirmDelete(oficio)}
                                     >
                                         🗑️ Eliminar
                                     </button>
@@ -155,6 +194,16 @@ const Oficios = () => {
                     oficio={currentOficio}
                     onClose={handleCloseModal}
                     onSave={handleSaveOficio}
+                />
+            )}
+
+            {/* 💡 RENDERIZAR EL MODAL DE CONFIRMACIÓN GENÉRICO */}
+            {showConfirmModal && (
+                <GenericConfirmModal
+                    show={showConfirmModal}
+                    onClose={handleCloseConfirmDelete}
+                    onConfirm={handleDelete} // La acción a ejecutar
+                    {...deleteModalProps} // Propiedades dinámicas (título, mensaje, clase)
                 />
             )}
         </div>

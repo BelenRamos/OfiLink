@@ -1,6 +1,6 @@
-import { useState, useEffect } from 'react'; // Importamos useEffect
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useAuth } from '../hooks/useAuth'; // ✨ Importamos el hook de Auth
+import { useAuth } from '../hooks/useAuth'; 
 
 
 const Login = () => {
@@ -8,6 +8,8 @@ const Login = () => {
     const { usuario, loginUser } = useAuth();
     
     const [credenciales, setCredenciales] = useState({ usuario: '', password: '' });
+    // 💡 NUEVO ESTADO para el mensaje de error
+    const [errorMensaje, setErrorMensaje] = useState(''); 
     const navigate = useNavigate();
 
     useEffect(() => {
@@ -20,51 +22,59 @@ const Login = () => {
                 navigate('/home', { replace: true });
             }
         }
-    }, [usuario, navigate]); // Se dispara cuando 'usuario' en el contexto cambia
+    }, [usuario, navigate]); 
 
     const handleChange = (e) => {
         setCredenciales({ ...credenciales, [e.target.name]: e.target.value });
+        setErrorMensaje(''); // 💡 Limpiamos el error al cambiar los inputs
     };
 
     const handleLogin = async (e) => {
-        e.preventDefault();
-        try {
-            const res = await fetch('/api/auth/login', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(credenciales),
-            });
+        e.preventDefault();
+        setErrorMensaje(''); // Limpiamos errores anteriores antes de la petición
 
+        try {
+            const res = await fetch('/api/auth/login', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(credenciales),
+            });
+
+            // Manejo de error 403 (Prohibido/Permisos)
             if (res.status === 403) {
-                // Obtener el mensaje de error específico del backend
                 const errorData = await res.json();
-                throw new Error(errorData.error); 
+                // Lanzamos un error con el mensaje detallado del backend
+                throw new Error(errorData.error || 'Acceso denegado. Verifica tus permisos.'); 
             }
 
-            if (!res.ok) throw new Error('Credenciales incorrectas');
+            // Manejo de otros errores HTTP (400, 401, 500, etc.)
+            if (!res.ok) {
+                // Intentamos leer el mensaje de error del cuerpo si está disponible
+                const errorData = await res.json().catch(() => ({})); 
+                throw new Error(errorData.error || 'Credenciales incorrectas o error de conexión.'); 
+            }
 
-            const { usuario, token } = await res.json();
+            const { usuario, token } = await res.json();
 
-            const usuarioNormalizado = {
-                id: usuario.id,
-                nombre: usuario.nombre,
-                mail: usuario.mail,
-                grupo: usuario.grupo,
-                roles: usuario.roles || [],
-                roles_keys: usuario.roles_keys || [], 
-                token // ¡Crucial!
-            };
+            const usuarioNormalizado = {
+                id: usuario.id,
+                nombre: usuario.nombre,
+                mail: usuario.mail,
+                grupo: usuario.grupo,
+                roles: usuario.roles || [],
+                roles_keys: usuario.roles_keys || [], 
+                token
+            };
             
-            //Usamos loginUser para guardar en localStorage y decodificar el token al instante
+            // Usamos loginUser para guardar en localStorage y decodificar el token
             loginUser(usuarioNormalizado); 
 
+        } catch (err) {
+            // 💡 En lugar de alert(), establecemos el mensaje de error en el estado
+            setErrorMensaje(err.message);
+        }
+    };
 
-        } catch (err) {
-            alert(err.message);
-        }
-    };
-
-    // Si el usuario ya existe, mostramos un mensaje temporal (el useEffect se encargará de la redirección)
     if (usuario) {
         return <p className="container mt-4">Iniciando sesión...</p>;
     }
@@ -73,6 +83,10 @@ const Login = () => {
     return (
         <div className="container mt-4" style={{ maxWidth: '400px' }}>
             <h2 className="mb-4">Ingresar</h2>
+            
+            {/* 💡 MOSTRAR EL MENSAJE DE ERROR AQUÍ */}
+            {errorMensaje && <div className="alert alert-danger">{errorMensaje}</div>} 
+
             <form onSubmit={handleLogin}>
                 {/* ... (Tus inputs de formulario) ... */}
                 <div className="mb-3">
