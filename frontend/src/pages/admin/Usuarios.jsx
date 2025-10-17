@@ -1,18 +1,20 @@
 import React, { useEffect, useState } from 'react';
 import { apiFetch } from '../../utils/apiFetch';
-import GenericConfirmModal from '../../components/GenericConfirmModal'; // 💡 IMPORTAMOS EL NUEVO MODAL
+import GenericConfirmModal from '../../components/GenericConfirmModal';
+import ConfirmBlockModal from '../../components/ConfirmBlockModal';
 
 // Definición de las acciones que requieren confirmación
 const ACTION_RESET = 'reset';
 const ACTION_DELETE = 'delete';
 const ACTION_BLOCK = 'block';
+const ACTION_REACTIVATE = 'reactivate';
 
 const Usuarios = () => {
     const [usuarios, setUsuarios] = useState([]);
     const [filtroTipo, setFiltroTipo] = useState('');
     const [mensaje, setMensaje] = useState('');
 
-    // 💡 ESTADOS PARA EL MODAL DE CONFIRMACIÓN
+    // ESTADOS PARA EL MODAL DE CONFIRMACIÓN
     const [showConfirmModal, setShowConfirmModal] = useState(false);
     const [currentAction, setCurrentAction] = useState(null); // Qué acción ejecutar (reset, delete, block)
     const [targetUsuario, setTargetUsuario] = useState(null); // A qué usuario afecta
@@ -32,7 +34,7 @@ const Usuarios = () => {
         try {
             const response = await apiFetch('/api/personas'); 
             setUsuarios(response); 
-            setMensaje('');
+            //setMensaje('');
         } catch (error) {
             const fullMessage = extractErrorMessage(error, 'Error al cargar la lista de usuarios.');
             console.error('Error al cargar usuarios:', error);
@@ -57,7 +59,8 @@ const Usuarios = () => {
     const resetearContraseña = async (id) => {
         try {
             const response = await apiFetch(`/api/personas/${id}/reset-password`, {
-                method: 'PUT'
+                method: 'PUT',
+                body: {}
             });
             setMensaje(`Nueva contraseña para ID ${id}: ${response.nuevaPassword}`);
             fetchUsuarios(); 
@@ -72,7 +75,10 @@ const Usuarios = () => {
     const eliminarCuenta = async (usuarioId) => {
         try {
             await apiFetch(`/api/personas/${usuarioId}/eliminar`, {
-                method: 'PUT'
+                method: 'PUT',
+                body: {
+                    motivo: "Eliminación lógica por administrador"
+                }
             });
             
             setMensaje(`La cuenta con ID ${usuarioId} fue marcada como eliminada.`);
@@ -117,22 +123,27 @@ const Usuarios = () => {
 
     // --- MANEJO DE ACCIONES DEL MODAL (DISPATCHER) ---
     // Esta función determina qué acción se ejecuta cuando el usuario confirma en el modal.
-    const handleConfirmAction = async (motivo) => {
+    const handleConfirmAction = async (motivo = null) => { // Acepta el motivo (o null)
         closeConfirmModal(); 
 
-        if (!targetUsuario || !currentAction) return;
+        if (!targetUsuario) return;
 
+        // Solo necesitamos el motivo si la acción es BLOCK
+        const finalMotivo = currentAction === ACTION_BLOCK ? motivo : null;
+        
         switch (currentAction) {
             case ACTION_RESET:
                 await resetearContraseña(targetUsuario.id);
                 break;
             case ACTION_DELETE:
-                await eliminarCuenta(targetUsuario.id);
+                // La eliminación lógica es con PUT, no necesita body en el backend (pero podría si lo cambiamos)
+                await eliminarCuenta(targetUsuario.id); 
                 break;
             case ACTION_BLOCK:
-                // Solo se llama al bloqueo si la acción no es 'Reactivar'
-                await toggleBloqueo(targetUsuario, motivo);
+                // CRÍTICO: Pasamos el motivo a toggleBloqueo
+                await toggleBloqueo(targetUsuario, finalMotivo); 
                 break;
+            // La reactivación ahora se maneja dentro de toggleBloqueo, pero si usas ACTION_REACTIVATE, se manejaría aquí.
             default:
                 break;
         }
@@ -140,6 +151,8 @@ const Usuarios = () => {
 
     // --- Renderizado y Lógica del Modal (para el JSX) ---
     let modalProps = {};
+    let useInputModal = false;
+
     if (targetUsuario) {
         switch (currentAction) {
             case ACTION_RESET:
@@ -159,13 +172,17 @@ const Usuarios = () => {
                 };
                 break;
             case ACTION_BLOCK:
-                if (targetUsuario.estado_cuenta === 'Activo') {
-                    // Bloqueo, requiere input (usaremos prompt temporalmente hasta tener un modal más complejo)
-                    const motivo = prompt(`Ingrese el motivo para bloquear a ${targetUsuario.nombre}:`);
-                    if (motivo) {
-                        handleConfirmAction(motivo);
-                    }
-                    return null; // Evita renderizar el modal genérico
+            if (targetUsuario.estado_cuenta === 'Activo') {
+                // ⚠️ Bloqueo: Usamos el modal con input
+                useInputModal = true; 
+                modalProps = {
+                    title: "Confirmar Bloqueo de Cuenta",
+                    message: `Ingrese el motivo para bloquear la cuenta de ${targetUsuario.nombre}. Este motivo quedará registrado en la auditoría.`,
+                    confirmText: "🚫 Bloquear Cuenta",
+                    confirmButtonClass: "btn-danger",
+                    inputLabel: 'Motivo del Bloqueo',
+                    isInputRequired: true
+                };
                 } else {
                     // Desbloqueo/Reactivación
                     modalProps = {
@@ -270,13 +287,26 @@ const Usuarios = () => {
                 </tbody>
             </table>
 
-            {/* 💡 RENDERIZAR EL MODAL GENÉRICO */}
-            <GenericConfirmModal
-                show={showConfirmModal}
-                onClose={closeConfirmModal}
-                onConfirm={() => handleConfirmAction(null)} // El motivo de bloqueo se maneja antes (ver nota)
-                {...modalProps}
-            />
+          
+            {/* Modal para acciones que requieren input (SOLO BLOQUEO) */}
+            {useInputModal && targetUsuario && (
+                <ConfirmBlockModal
+                    show={showConfirmModal}
+                    onClose={closeConfirmModal}
+                    onConfirm={handleConfirmAction} // Pasará el motivo como argumento
+                    {...modalProps}
+                />
+            )}
+
+            {/* Modal para acciones simples (RESET, DELETE, DESBLOQUEO/REACTIVACIÓN) */}
+            {!useInputModal && (
+                <GenericConfirmModal
+                    show={showConfirmModal}
+                    onClose={closeConfirmModal}
+                    onConfirm={() => handleConfirmAction(null)} // No pasa motivo (motivo es null)
+                    {...modalProps}
+                />
+            )}
         </div>
     );
 };

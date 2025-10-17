@@ -1,6 +1,7 @@
 const { poolPromise, sql } = require('../db');
 const jwt = require('jsonwebtoken');
 const bcrypt = require('bcrypt');
+const { registrarAuditoria } = require('./personasController');
 require('dotenv').config(); // leer .env
 const SECRET_KEY = process.env.SECRET_KEY;
 
@@ -359,6 +360,7 @@ const login = async (req, res) => {
 
 const cambiarPassword = async (req, res) => {
   const { email, oldPassword, newPassword } = req.body;
+  let usuarioId = null;
 
   try {
     const pool = await poolPromise;
@@ -373,6 +375,7 @@ const cambiarPassword = async (req, res) => {
     }
 
     const usuarioEncontrado = result.recordset[0];
+    usuarioId = usuarioEncontrado.id;
 
     // Comparar la contraseña actual con el hash almacenado
     const passwordValida = await bcrypt.compare(oldPassword, usuarioEncontrado.contraseña);
@@ -388,6 +391,18 @@ const cambiarPassword = async (req, res) => {
       .input('id', sql.Int, usuarioEncontrado.id)
       .input('nuevaContraseñaHash', sql.VarChar, nuevaContraseñaHash)
       .query(`UPDATE Persona SET contraseña = @nuevaContraseñaHash WHERE id = @id`);
+
+    //REGISTRAR ACCIÓN EN AUDITORÍA
+    await registrarAuditoria(
+        pool, 
+        usuarioId, // Usuario Afectado (es el mismo que lo hace)
+        usuarioId, // Usuario que Ejecuta la Acción (es el mismo)
+        'PASSWORD_CHANGE', 
+        'Cambio de contraseña realizado por el propio usuario',
+        'contraseña',
+        '***ANTERIOR_HASH_MODIFICADO***',
+        '***NUEVO_HASH_MODIFICADO***' 
+    );
 
     res.status(200).json({ mensaje: 'Contraseña cambiada exitosamente.' });
 

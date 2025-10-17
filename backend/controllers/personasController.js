@@ -32,29 +32,6 @@ const upload = multer({
   limits: { fileSize: 2 * 1024 * 1024 } // 2MB
 });
 
-// Función auxiliar para hacer la auditoria --> TODAVIA NO
-/* const registrarAuditoria = async (pool, PersonaId, UsuarioAccionId, TipoCambio, Observaciones, ValorNuevo) => {
-    try {
-        await pool.request()
-            .input('PersonaId', sql.Int, PersonaId)
-            .input('UsuarioAccionId', sql.Int, UsuarioAccionId)
-            .input('TipoCambio', sql.VarChar, TipoCambio)
-            .input('Observaciones', sql.NVarChar, Observaciones || `Acción de ${TipoCambio}`)
-            .input('ColumnaAfectada', sql.VarChar, 'estado_cuenta')
-            .input('ValorNuevo', sql.VarChar, ValorNuevo)
-            .query(`
-                INSERT INTO Auditoria_Persona 
-                    (PersonaId, UsuarioAccionId, TipoCambio, Observaciones, ColumnaAfectada, ValorNuevo)
-                VALUES 
-                    (@PersonaId, @UsuarioAccionId, @TipoCambio, @Observaciones, @ColumnaAfectada, @ValorNuevo)
-            `);
-    } catch (err) {
-        // MUY IMPORTANTE: Si la auditoría falla, solo logueamos el error y NO detenemos el bloqueo/desbloqueo.
-        console.error("Error FATAL al registrar en Auditoria_Persona:", err.message);
-    }
-}; */
-
-
 const uploadMiddleware = (req, res, next) => {
     upload.single('foto')(req, res, (err) => {
         if (err instanceof multer.MulterError) {
@@ -73,6 +50,46 @@ const uploadMiddleware = (req, res, next) => {
     });
 };
 
+const formatDate = (dateString) => {
+    if (!dateString) return null; // Maneja valores nulos o vacíos
+
+    // Asegura que es un objeto Date válido
+    const date = new Date(dateString);
+
+    // Formato YYYY-MM-DD
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+
+    return `${year}-${month}-${day}`;
+};
+
+// Función auxiliar para hacer la auditoria
+const registrarAuditoria = async (pool, PersonaId, UsuarioAccionId, TipoCambio, Observaciones, ColumnaAfectada = null, ValorAnterior = null, ValorNuevo = null) => {
+    try {
+        const request = pool.request();
+        
+        request.input('PersonaId', sql.Int, PersonaId);
+        request.input('UsuarioAccionId', sql.Int, UsuarioAccionId);
+        request.input('TipoCambio', sql.VarChar, TipoCambio);
+        request.input('Observaciones', sql.NVarChar, Observaciones || `Acción de ${TipoCambio}`);
+        
+        // Los valores por defecto son NULL, lo que permite auditar acciones sin un campo específico
+        request.input('ColumnaAfectada', sql.VarChar, ColumnaAfectada);
+        request.input('ValorAnterior', sql.NVarChar, ValorAnterior);
+        request.input('ValorNuevo', sql.NVarChar, ValorNuevo);
+        
+        await request.query(`
+            INSERT INTO Auditoria_Persona 
+                (PersonaId, UsuarioAccionId, TipoCambio, Observaciones, ColumnaAfectada, ValorAnterior, ValorNuevo)
+            VALUES 
+                (@PersonaId, @UsuarioAccionId, @TipoCambio, @Observaciones, @ColumnaAfectada, @ValorAnterior, @ValorNuevo)
+        `);
+    } catch (err) {
+        // MUY IMPORTANTE: Si la auditoría falla, solo logueamos el error y NO detenemos la operación principal.
+        console.error("Error FATAL al registrar en Auditoria_Persona:", err.message);
+    }
+};
 
 const subirFoto = async (req, res) => {
   const id = parseInt(req.params.id);
@@ -382,6 +399,19 @@ const registrarPersona = async (req, res) => {
 
         await transaction.commit();
 
+        //Guardar en Auditoria
+        const UsuarioAccionId = req.usuario?.id || personaId;
+        await registrarAuditoria(
+            pool, 
+            personaId, 
+            UsuarioAccionId, 
+            'CREACION', 
+            `Registro inicial como ${tipo_usuario}`,
+            'nombre, mail, estado_cuenta', 
+            null, // No hay valor anterior
+            `${nombre}, ${mail}, Activo` 
+        );
+
         res.status(201).json({
             message: 'Usuario registrado correctamente.',
             personaId
@@ -403,7 +433,7 @@ const registrarPersona = async (req, res) => {
     }
 };
 
-//Editar perfil
+// Editar perfil
 const actualizarPersona = async (req, res) => {
     const id = parseInt(req.params.id);
     const { 
@@ -413,11 +443,17 @@ const actualizarPersona = async (req, res) => {
         // No se permite cambiar mail o contraseña aquí
     } = req.body;
 
+    let dataAnterior = null;
+    const cambiosDetectados = []; // Necesaria para la auditoría
+    
+    // 🔑 CORRECCIÓN 2: Obtener el ID del usuario que hace el cambio (el propio usuario logueado)
+    const UsuarioAccionId = req.usuario.id; 
+
     try {
         const pool = await poolPromise;
         const request = pool.request();
         
-        // 1. Validaciones (Aseguramos la integridad de los datos)
+        // 1. Validaciones
         if (!nombre || !fecha_nacimiento) {
             return res.status(400).json({ error: 'Faltan campos obligatorios para la actualización (nombre o fecha de nacimiento).' });
         }
@@ -427,7 +463,7 @@ const actualizarPersona = async (req, res) => {
             return res.status(400).json({ error: 'El teléfono debe tener al menos 9 números y solo dígitos.' });
         }
         
-        // Validar edad mínima 18 (Igual que en registrarPersona)
+        // Validar edad mínima 18
         const nacimiento = new Date(fecha_nacimiento);
         const hoy = new Date();
         let edad = hoy.getFullYear() - nacimiento.getFullYear();
@@ -439,9 +475,21 @@ const actualizarPersona = async (req, res) => {
             return res.status(400).json({ error: 'El usuario debe ser mayor de 18 años.' });
         }
         
-        // 2. Ejecutar la actualización
-        const result = await request
+        // 🔑 CORRECCIÓN 1a: Consulta SQL para obtener los datos anteriores
+        const oldDataResult = await request
             .input('id', sql.Int, id)
+            .query(`SELECT nombre, contacto, fecha_nacimiento FROM Persona WHERE id = @id`);
+
+        if (oldDataResult.recordset.length === 0) {
+             return res.status(404).json({ error: 'Persona no encontrada.' });
+        }
+
+        // 🔑 CORRECCIÓN 1b: Asignar los datos anteriores
+        dataAnterior = oldDataResult.recordset[0];
+        
+        // 2. Ejecutar la actualización
+        // (Reutilizamos 'request' que ya está preparado para esta conexión)
+        const updateResult = await request
             .input('nombre', sql.VarChar, nombre)
             .input('contacto', sql.VarChar, contacto || null)
             .input('fecha_nacimiento', sql.Date, fecha_nacimiento)
@@ -454,13 +502,42 @@ const actualizarPersona = async (req, res) => {
                 WHERE id = @id
             `);
 
-        if (result.rowsAffected[0] === 0) {
+        if (updateResult.rowsAffected[0] === 0) {
+            // Este caso ahora solo ocurre si no se encontró la persona, 
+            // ya que se verificó antes. 
             return res.status(404).json({ mensaje: 'Persona no encontrada o no se realizaron cambios.' });
         }
 
-        // 3. Devolver los datos actualizados
-        // NOTA: Para ser más RESTful, podrías llamar a getPersonaPorId para devolver
-        // el objeto completo, pero por simplicidad devolvemos solo lo que se actualizó.
+        // 3. AUDITAR CADA CAMBIO INDIVIDUALMENTE 
+        
+        const camposAChequear = [
+            { campo: 'nombre', valorNuevo: nombre },
+            { campo: 'contacto', valorNuevo: contacto || null },
+            { campo: 'fecha_nacimiento', valorNuevo: formatDate(fecha_nacimiento) }
+        ];
+        
+        for (const { campo, valorNuevo } of camposAChequear) {
+            // El valor de la DB se formatea (si es fecha) para asegurar que coincida con el formato del input
+            const valorAnterior = (campo === 'fecha_nacimiento') 
+                ? formatDate(dataAnterior[campo]) 
+                : dataAnterior[campo];
+
+            // Comparamos el valor anterior (DB) con el nuevo (Request)
+            if (String(valorAnterior) !== String(valorNuevo)) {
+                await registrarAuditoria(
+                    pool, 
+                    id, 
+                    UsuarioAccionId, // Ya está definida
+                    'UPDATE_PERFIL',
+                    `Cambio en el campo ${campo} realizado por el propio usuario.`,
+                    campo, 
+                    valorAnterior,
+                    valorNuevo
+                );
+            }
+        }
+
+        // 4. Devolver los datos actualizados
         res.json({ 
             mensaje: 'Perfil actualizado correctamente.',
             id,
@@ -478,6 +555,7 @@ const actualizarPersona = async (req, res) => {
 //Resetear Contraseña -- Solo por el admin
 const resetPassword = async (req, res) => {
   const { id } = req.params;
+  const adminId = req.usuario.id;
 
   try {
     const pool = await poolPromise;
@@ -492,6 +570,18 @@ const resetPassword = async (req, res) => {
       .input('id', sql.Int, id)
       .input('contraseña', sql.VarChar, hashedPassword)
       .query(`UPDATE Persona SET contraseña = @contraseña WHERE id = @id`);
+
+    // 4. Registrar acción en auditoría
+    await registrarAuditoria(
+        pool, 
+        parseInt(id), 
+        adminId, 
+        'PASSWORD_RESET', 
+        'Reseteo de contraseña por administrador',
+        'contraseña',
+        '***ANTERIOR***', // Marcamos que hubo un valor, pero no lo registramos
+        '***NUEVO_HASH***' // Marcamos que hubo un cambio, sin registrar el hash
+    );
 
     res.json({
       message: 'Contraseña reseteada con éxito.',
@@ -546,18 +636,34 @@ const modificarEstadoCuenta = async (req, res) => {
              return res.status(404).json({ mensaje: 'Persona no encontrada o estado sin cambio.' });
         }
 
+        if (updateResult.rowsAffected[0] > 0) {
+                // Determinar el TipoCambio
+                let tipoCambio;
+                let observaciones = motivo || `Cambio de estado de ${estadoAnterior} a ${nuevoEstado}`;
+                
+                if (nuevoEstado === 'Bloqueado') {
+                    tipoCambio = 'BLOQUEO';
+                    if (!motivo) observaciones = 'Bloqueo de cuenta sin motivo especificado.'; // Requiere motivo
+                } else if (nuevoEstado === 'Activo' && estadoAnterior === 'Bloqueado') {
+                    tipoCambio = 'DESBLOQUEO';
+                } else if (nuevoEstado === 'Activo' && estadoAnterior === 'Eliminado') {
+                    tipoCambio = 'REACTIVACION';
+                } else {
+                    tipoCambio = 'UPDATE_ESTADO'; // Para otros cambios de estado no cubiertos
+                }
 
-        // 4. Registrar la acción en la tabla de Auditoría (COMENTADO PARA DESACTIVAR)
-        /*
-        await registrarAuditoria(
-            pool, 
-            id, 
-            adminId, 
-            tipoCambio, 
-            motivo, 
-            nuevoEstado
-        );
-        */
+                // 4. Registrar la acción en la tabla de Auditoría
+                await registrarAuditoria(
+                    pool, 
+                    parseInt(id), 
+                    adminId, 
+                    tipoCambio, 
+                    observaciones, 
+                    'estado_cuenta', 
+                    estadoAnterior, 
+                    nuevoEstado
+                );
+            }
 
         res.status(200).json({ 
             mensaje: `Cuenta de ID ${id} cambiada a estado: ${nuevoEstado}.`,
@@ -572,12 +678,13 @@ const modificarEstadoCuenta = async (req, res) => {
 
 const eliminarCuentaLogica = async (req, res) => {
     const personaLogueadaId = req.usuario.id; 
-
     // ID del objetivo a eliminar:
-    // Si la ruta tiene ':id' (Admin), usa ese ID. Si no tiene (mi-perfil/eliminar), usa el propio ID del logueado.
+        // Si la ruta tiene ':id' (Admin), usa ese ID. Si no tiene (mi-perfil/eliminar), usa el propio ID del logueado.
     const targetId = req.params.id || personaLogueadaId; 
-    // Si el usuario no es admin Y el ID que intenta eliminar no es el suyo, se deniega el acceso.
+        // Si el usuario no es admin Y el ID que intenta eliminar no es el suyo, se deniega el acceso.
     const esAdmin = req.usuario.roles_keys?.includes('administrador');
+    //const motivo = req.body.motivo || 'Eliminación lógica solicitada por el usuario.'; // Asume que el motivo viene en el body
+    const { motivo = "Motivo no especificado por el sistema" } = req.body || {};
 
     if (!esAdmin && targetId.toString() !== personaLogueadaId.toString()) {
         return res.status(403).json({ 
@@ -585,24 +692,43 @@ const eliminarCuentaLogica = async (req, res) => {
         });
     }
 
-    // Si llegamos aquí:
-    // O es Admin y está usando la ruta con ID.
-    // O es el propio usuario eliminándose a sí mismo (usando cualquiera de las dos rutas, pero targetId es su propio ID).
-    
     try {
         const pool = await poolPromise;
+        // 1. Obtener estado anterior (opcional, pero buena práctica)
+        const result = await pool.request()
+             .input('id', sql.Int, targetId)
+             .query('SELECT estado_cuenta FROM Persona WHERE id = @id');
         
+        const estadoAnterior = result.recordset[0]?.estado_cuenta;
+        // 2. Ejecutar la baja lógica
         await pool.request()
             .input('id', sql.Int, targetId)
             .query(`
                 UPDATE Persona
                 SET estado_cuenta = 'Eliminado'
-                WHERE id = @id;
+                WHERE id = @id AND estado_cuenta <> 'Eliminado';
             `);
             
-        // Registrar acción en auditoría --> TODAVIA NO
-        // registrarAuditoria(personaLogueadaId, 'Eliminación Lógica', 'Persona', targetId); 
-
+        // 3. Registrar acción en auditoría
+        await registrarAuditoria(
+            pool, 
+            targetId, 
+            personaLogueadaId, // La persona logueada (Admin o el propio usuario)
+            'ELIMINACION_LOGICA', 
+            motivo, 
+            'estado_cuenta',
+            estadoAnterior,
+            'Eliminado'
+        );
+        //Por las dudasss
+/*         await pool.request()
+            .input('id', sql.Int, targetId)
+            .query(`
+                UPDATE Persona
+                SET estado_cuenta = 'Eliminado'
+                WHERE id = @id;
+            `); */
+            
         res.status(200).json({ mensaje: `Cuenta con ID ${targetId} marcada como 'Eliminado' exitosamente.` });
         
     } catch (err) {
@@ -622,5 +748,6 @@ module.exports = {
   actualizarPersona,
   modificarEstadoCuenta,
   eliminarCuentaLogica,
+  registrarAuditoria,
   uploadMiddleware // Exportamos la función de middleware con el manejo de errores de Multer
 };

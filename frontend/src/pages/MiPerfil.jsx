@@ -2,15 +2,12 @@ import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { apiFetch } from '../utils/apiFetch';
 import { useAuth } from '../hooks/useAuth';
-
-// Componentes Reutilizados
 import FotoPerfil from '../components/FotoPerfil';
 import DetallesTrabajador from '../components/DetallesTrabajador'; 
 import ListaContratacionesCliente from '../components/ListaContratacionesCliente';
-
-// Nuevos Componentes de Edición
 import FormularioEditarPerfil from '../components/FormularioEditarPerfil'; 
 import FormularioEditarTrabajador from '../components/FormularioEditarTrabajador';
+import GenericConfirmModal from '../components/GenericConfirmModal';
 
 const MiPerfil = () => {
   const navigate = useNavigate();
@@ -24,6 +21,7 @@ const MiPerfil = () => {
   const [isEditing, setIsEditing] = useState(false); 
   const [isWorkerEditing, setIsWorkerEditing] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false); 
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
 
   // 1. Manejo de Actualización de Datos Básicos
   const handlePerfilUpdate = (datosActualizados) => {
@@ -65,38 +63,35 @@ const MiPerfil = () => {
     setMensaje('¡Foto de perfil actualizada!');
   };
 
-  // 4. Funcion para eliminar la cuenta
-  const handleEliminarCuenta = async () => {
-    if (!usuario || !usuario.id) return;
+// 4. Funcion para ELIMINAR CUENTA (AHORA SOLO ABRE EL MODAL)
+const handleEliminarCuenta = () => {
+    // Si la cuenta ya se está eliminando o no hay usuario, salir.
+    if (!usuario || !usuario.id || isDeleting) return; 
 
-    setIsDeleting(true);
+    setShowDeleteModal(true);
+};
 
-    // Nota: Reemplazaremos por un modal
-    const confirmacion = window.prompt("¿Está absolutamente seguro de eliminar su cuenta? Escriba 'ELIMINAR MI CUENTA' para confirmar. (La reactivación requerirá contacto con un administrador)");
-    
-    if (confirmacion !== 'ELIMINAR MI CUENTA') {
-      setMensaje('Eliminación cancelada.');
-      setIsDeleting(false);
-      return;
-    }
+const executeEliminarCuenta = async () => {
+    setShowDeleteModal(false);
+    setIsDeleting(true); 
 
-      try {
-          await apiFetch(`/api/personas/mi-perfil/eliminar`, { 
-              method: 'PUT'
-          });
-          
-          await logoutUser(); 
-          setMensaje('Su cuenta ha sido eliminada exitosamente. Redirigiendo...');
-/*           setTimeout(() => {
-            navigate('/'); 
-          }, 1000); */ 
-      
-    } catch (error) {
-        console.error('Error al eliminar la cuenta:', error);
-        setMensaje(`Error al eliminar la cuenta: ${error.message || 'Error de conexión.'}`);
-        setIsDeleting(false); 
-    }
-  };
+    try {
+        await apiFetch(`/api/personas/mi-perfil/eliminar`, { 
+            method: 'PUT',
+            body: { 
+                motivo: "Eliminación de cuenta por el propio usuario"
+            }
+        });
+        
+        await logoutUser(); 
+        setMensaje('Su cuenta ha sido eliminada exitosamente. Redirigiendo...');
+    
+    } catch (error) {
+        console.error('Error al eliminar la cuenta:', error);
+        setMensaje(`Error al eliminar la cuenta: ${error.message || 'Error de conexión.'}`);
+        setIsDeleting(false); 
+    }
+};
 
   // 5. Carga Inicial de Datos
   useEffect(() => {
@@ -220,7 +215,7 @@ const MiPerfil = () => {
                 <h4 className="mb-3">Detalles de Trabajador</h4>
                 <button 
                     className="btn btn-outline-secondary btn-sm"
-                    onClick={() => setIsWorkerEditing(prev => !prev)} // Alternar edición
+                    onClick={() => setIsWorkerEditing(prev => !prev)}
                 >
                     {isWorkerEditing ? 'Ocultar Edición' : 'Editar Oficios/Zonas'}
                 </button>
@@ -251,6 +246,17 @@ const MiPerfil = () => {
             setContrataciones={setContrataciones}
         />
       )}
+
+      {/* MODAL DE CONFIRMACIÓN DE ELIMINACIÓN */}
+      <GenericConfirmModal
+          show={showDeleteModal}
+          onClose={() => setShowDeleteModal(false)}
+          onConfirm={executeEliminarCuenta}
+          title="Confirmar Eliminación de Cuenta"
+          message={`¿Está ABSOLUTAMENTE seguro de eliminar su cuenta, ${usuario.nombre}? Esta acción no se puede deshacer sin contactar a un administrador.`}
+          confirmText="Sí, Eliminar Mi Cuenta"
+          confirmButtonClass="btn-danger"
+      />
     </div>
   );
 };

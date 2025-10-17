@@ -23,13 +23,12 @@ router.put('/:id/foto', uploadMiddleware, subirFoto);
 router.get('/reporte', getPersonasReporte);
 router.post('/registrar', registrarPersona);
 router.get('/', getPersonas);
-router.put('/:id/reset-password', resetPassword); 
+router.put('/:id/reset-password', autenticarJWT, isAdmin, resetPassword); 
 router.get('/:id', getPersonaPorId);
-router.put('/:id', actualizarPersona);
+router.put('/:id', autenticarJWT, actualizarPersona);
 router.put('/:id/estado', autenticarJWT, isAdmin, modificarEstadoCuenta);
 // ELIMINACIÓN LÓGICA (Para el Administrador o el propio Usuario)
 router.put('/:id/eliminar', autenticarJWT, isAdmin, eliminarCuentaLogica); 
-
 
 
 module.exports = router;
