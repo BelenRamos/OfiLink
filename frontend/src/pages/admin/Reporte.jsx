@@ -1,19 +1,20 @@
 import React, { useEffect, useRef, useState } from 'react';
 import axios from 'axios';
+import { imprimirHTML } from "../../utils/imprimirHTML";
 
 const Reporte = () => {
   const [datos, setDatos] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  const [rolFiltro, setRolFiltro] = useState('todos'); // Nuevo estado para el filtro
+  const [rolFiltro, setRolFiltro] = useState('todos'); 
   const printRef = useRef();
 
   useEffect(() => {
     const fetchDatos = async () => {
-      setLoading(true); // Se inicia la carga
+      setLoading(true); 
       try {
         const { data } = await axios.get('/api/personas/reporte', {
-          params: { rol: rolFiltro } // Envía el rol como parámetro de consulta
+          params: { rol: rolFiltro } 
         });
         setDatos(data);
       } catch (err) {
@@ -25,29 +26,12 @@ const Reporte = () => {
     };
 
     fetchDatos();
-  }, [rolFiltro]); // El efecto se ejecuta cada vez que el filtro cambie
+  }, [rolFiltro]); 
 
   const imprimir = () => {
-    const contenido = printRef.current.innerHTML;
-    const ventana = window.open('', '', 'width=800,height=600');
-    ventana.document.write(`
-      <html>
-        <head>
-          <title>Reporte</title>
-          <style>
-            body { font-family: Arial, sans-serif; padding: 20px; }
-            table { border-collapse: collapse; width: 100%; }
-            th, td { border: 1px solid #ccc; padding: 8px; text-align: left; }
-            th { background-color: #f5f5f5; }
-          </style>
-        </head>
-        <body>
-          ${contenido}
-        </body>
-      </html>
-    `);
-    ventana.document.close();
-    ventana.print();
+    if (printRef.current) {
+      imprimirHTML(printRef.current.innerHTML, "Historial de Auditoría");
+    }
   };
 
   return (
@@ -87,7 +71,7 @@ const Reporte = () => {
               <tr>
                 <th>ID</th>
                 <th>Nombre</th>
-                <th>Rol</th> {/* Se cambió para mostrar el rol */}
+                <th>Rol</th> 
               </tr>
             </thead>
             <tbody>
@@ -95,7 +79,7 @@ const Reporte = () => {
                 <tr key={d.id}>
                   <td>{d.id}</td>
                   <td>{d.nombre}</td>
-                  <td>{d.rol}</td> {/* Se cambió para mostrar el rol */}
+                  <td>{d.rol}</td>
                 </tr>
               ))}
             </tbody>
