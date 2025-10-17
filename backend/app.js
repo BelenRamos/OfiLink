@@ -53,8 +53,9 @@ app.use('/api/zonas', zonasRoutes);
 const oficiosRoutes = require('./routes/oficios');
 app.use('/api/oficios', oficiosRoutes);
 
-const auditoriasRoutes = require('./routes/seguridad/auditorias');
-app.use('/api/auditorias', auditoriasRoutes);
+const estadisticasRoutes = require('./routes/seguridad/estadisticas');
+app.use('/api/estadisticas', estadisticasRoutes);
+
 
 //Para la foto de perfil
 const uploadsPath = 'C:\\temp_uploads';
