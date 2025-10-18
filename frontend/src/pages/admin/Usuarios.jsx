@@ -9,6 +9,13 @@ const ACTION_DELETE = 'delete';
 const ACTION_BLOCK = 'block';
 const ACTION_REACTIVATE = 'reactivate';
 
+const BLOCK_DURATIONS = [
+    { value: '2', label: '2 días' }, 
+    { value: '5', label: '5 días' }, 
+    { value: '30', label: '1 mes (30 días)' },
+    { value: 'indefinido', label: 'Bloqueo Indefinido' } 
+];
+
 const Usuarios = () => {
     const [usuarios, setUsuarios] = useState([]);
     const [filtroTipo, setFiltroTipo] = useState('');
@@ -92,45 +99,55 @@ const Usuarios = () => {
     };
 
     // --- ACCIÓN: Toggle Bloqueo (sin cambios en la lógica interna) ---
-    const toggleBloqueo = async (usuario, motivo = null) => {
+    // --- ACCIÓN: Toggle Bloqueo (sin cambios en la lógica interna) ---
+    const toggleBloqueo = async (usuario, motivo = null, duracionBloqueoDias = null) => {
         const nuevoEstado = usuario.estado_cuenta === 'Activo' ? 'Bloqueado' : 'Activo';
         const accion = nuevoEstado === 'Bloqueado' ? 'bloquear' : 'desbloquear';
 
         try {
+            const body = { 
+                nuevoEstado: nuevoEstado,
+                motivo: motivo || "" 
+            };
+
+            if (nuevoEstado === 'Bloqueado' && duracionBloqueoDias) {
+                // 💡 Enviar la duración (número o 'indefinido')
+                body.duracionBloqueoDias = duracionBloqueoDias; 
+            }
+
             await apiFetch(`/api/personas/${usuario.id}/estado`, {
                 method: 'PUT',
-                body: { 
-                    nuevoEstado: nuevoEstado,
-                    motivo: motivo || "" // Pasamos el motivo si existe
-                }
+                body: body
             });
 
+            // 💡 AÑADE LA LÓGICA DEL MENSAJE DE ÉXITO Y fetchUsuarios() AQUÍ:
             let mensajeExito;
             if (usuario.estado_cuenta === 'Eliminado') {
-                mensajeExito = `La cuenta de ${usuario.nombre} fue reactivada exitosamente.`;
+                 mensajeExito = `La cuenta de ${usuario.nombre} fue reactivada exitosamente.`;
             } else {
-                mensajeExito = `La cuenta de ${usuario.nombre} fue ${accion === 'bloquear' ? 'bloqueada' : 'desbloqueada'} exitosamente.`;
+                 mensajeExito = `La cuenta de ${usuario.nombre} fue ${accion === 'bloquear' ? 'bloqueada' : 'desbloqueada'} exitosamente.`;
+                 if (accion === 'bloquear' && duracionBloqueoDias) {
+                      mensajeExito += duracionBloqueoDias === 'indefinido' ? ' (Indefinido).' : ` (Por ${duracionBloqueoDias} días).`;
+                 }
             }
             setMensaje(mensajeExito);
             fetchUsuarios(); 
-
+            // 💡 FIN DE LÓGICA AÑADIDA
+            
         } catch (error) {
             const fullMessage = extractErrorMessage(error, `Error al ${accion} la cuenta.`);
             console.error('Error al cambiar el estado de la cuenta:', error);
             setMensaje(fullMessage);
         }
     }
-
     // --- MANEJO DE ACCIONES DEL MODAL (DISPATCHER) ---
     // Esta función determina qué acción se ejecuta cuando el usuario confirma en el modal.
-    const handleConfirmAction = async (motivo = null) => { // Acepta el motivo (o null)
+    // 💡 MODIFICAR: ACEPTAR 'duracion' como segundo argumento
+    const handleConfirmAction = async (motivo = null, duracion = null) => { 
         closeConfirmModal(); 
 
         if (!targetUsuario) return;
-
-        // Solo necesitamos el motivo si la acción es BLOCK
-        const finalMotivo = currentAction === ACTION_BLOCK ? motivo : null;
-        
+      
         switch (currentAction) {
             case ACTION_RESET:
                 await resetearContraseña(targetUsuario.id);
@@ -140,8 +157,8 @@ const Usuarios = () => {
                 await eliminarCuenta(targetUsuario.id); 
                 break;
             case ACTION_BLOCK:
-                // CRÍTICO: Pasamos el motivo a toggleBloqueo
-                await toggleBloqueo(targetUsuario, finalMotivo); 
+                // 💡 MODIFICAR: Pasamos motivo Y finalDuracion a toggleBloqueo
+                await toggleBloqueo(targetUsuario, motivo, duracion);
                 break;
             // La reactivación ahora se maneja dentro de toggleBloqueo, pero si usas ACTION_REACTIVATE, se manejaría aquí.
             default:
@@ -172,25 +189,26 @@ const Usuarios = () => {
                 };
                 break;
             case ACTION_BLOCK:
-            if (targetUsuario.estado_cuenta === 'Activo') {
-                // ⚠️ Bloqueo: Usamos el modal con input
-                useInputModal = true; 
-                modalProps = {
-                    title: "Confirmar Bloqueo de Cuenta",
-                    message: `Ingrese el motivo para bloquear la cuenta de ${targetUsuario.nombre}. Este motivo quedará registrado en la auditoría.`,
-                    confirmText: "🚫 Bloquear Cuenta",
-                    confirmButtonClass: "btn-danger",
-                    inputLabel: 'Motivo del Bloqueo',
-                    isInputRequired: true
-                };
-                } else {
-                    // Desbloqueo/Reactivación
+                if (targetUsuario.estado_cuenta === 'Activo') {
+                    // ⚠️ Bloqueo: Usamos el modal con input
+                    useInputModal = true; 
                     modalProps = {
-                        title: targetUsuario.estado_cuenta === 'Bloqueado' ? "Confirmar Desbloqueo" : "Confirmar Reactivación",
-                        message: `¿Está seguro de que desea ${targetUsuario.estado_cuenta === 'Bloqueado' ? 'desbloquear' : 'reactivar'} la cuenta de ${targetUsuario.nombre}?`,
-                        confirmText: targetUsuario.estado_cuenta === 'Bloqueado' ? "Desbloquear" : "Reactivar",
-                        confirmButtonClass: "btn-success"
-                    };
+                        title: "Confirmar Sanción de Bloqueo", // 💡 Titulo mejorado
+                        message: `Defina la duración de la sanción para ${targetUsuario.nombre} e ingrese el motivo.`, // 💡 Mensaje adaptado
+                        confirmText: "🚫 Bloquear Cuenta",
+                        confirmButtonClass: "btn-danger",
+                        inputLabel: 'Motivo del Bloqueo',
+                        isInputRequired: true,
+                        // 💡 AÑADIR: Propiedad para las opciones de duración
+                        durations: BLOCK_DURATIONS 
+                    };} else {
+                        // Desbloqueo/Reactivación
+                        modalProps = {
+                            title: targetUsuario.estado_cuenta === 'Bloqueado' ? "Confirmar Desbloqueo" : "Confirmar Reactivación",
+                            message: `¿Está seguro de que desea ${targetUsuario.estado_cuenta === 'Bloqueado' ? 'desbloquear' : 'reactivar'} la cuenta de ${targetUsuario.nombre}?`,
+                            confirmText: targetUsuario.estado_cuenta === 'Bloqueado' ? "Desbloquear" : "Reactivar",
+                            confirmButtonClass: "btn-success"
+                        };
                 }
                 break;
             default:
@@ -303,7 +321,8 @@ const Usuarios = () => {
                 <GenericConfirmModal
                     show={showConfirmModal}
                     onClose={closeConfirmModal}
-                    onConfirm={() => handleConfirmAction(null)} // No pasa motivo (motivo es null)
+                    // 💡 MODIFICAR: Pasa (motivo=null, duracion=null)
+                    onConfirm={() => handleConfirmAction(null, null)} 
                     {...modalProps}
                 />
             )}

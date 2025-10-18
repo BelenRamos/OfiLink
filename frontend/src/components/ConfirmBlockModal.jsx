@@ -9,25 +9,36 @@ const ConfirmBlockModal = ({
     confirmText, 
     confirmButtonClass = 'btn-primary',
     inputLabel = 'Motivo',
-    isInputRequired = true 
+    isInputRequired = true,
+    // 💡 NUEVA PROP: Array de objetos { value: 'X', label: 'Y' }
+    durations 
 }) => {
-    const [inputValue, setInputValue] = useState('');
+    const [motivo, setMotivo] = useState('');
+    // 💡 NUEVO ESTADO: Inicializa con el primer valor de la lista o 'indefinido' si la lista está vacía
+    const [selectedDuration, setSelectedDuration] = useState(durations?.[0]?.value || 'indefinido'); 
 
-    // Resetea el input cada vez que el modal se abre
+    // Resetea el input y la duración cada vez que el modal se abre
     useEffect(() => {
         if (show) {
-            setInputValue('');
+            setMotivo('');
+            // Resetea a la primera opción disponible
+            setSelectedDuration(durations?.[0]?.value || 'indefinido'); 
         }
-    }, [show]);
+    }, [show, durations]);
 
     const handleConfirm = () => {
-        if (isInputRequired && !inputValue.trim()) {
+        // Validación: El motivo sigue siendo obligatorio
+        if (isInputRequired && !motivo.trim()) {
             alert(`El campo "${inputLabel}" es obligatorio.`);
             return;
         }
-        // Llama a la función de confirmación pasando el valor del input
-        onConfirm(inputValue.trim());
-        setInputValue('');
+        
+        // 💡 CRÍTICO: Llama a la función de confirmación pasando el motivo Y la duración
+        onConfirm(motivo.trim(), selectedDuration);
+        
+        // Limpia estados
+        setMotivo('');
+        setSelectedDuration(durations?.[0]?.value || 'indefinido');
     };
 
     if (!show) {
@@ -44,14 +55,31 @@ const ConfirmBlockModal = ({
                     </div>
                     <div className="modal-body">
                         <p>{message}</p>
+                        
+                        {/* 💡 NUEVO SELECTOR DE DURACIÓN */}
+                        <div className="mb-3">
+                            <label htmlFor="durationSelect" className="form-label">Duración del Bloqueo</label>
+                            <select 
+                                id="durationSelect"
+                                className="form-select" 
+                                value={selectedDuration}
+                                onChange={(e) => setSelectedDuration(e.target.value)}
+                            >
+                                {durations && durations.map(d => (
+                                     <option key={d.value} value={d.value}>{d.label}</option>
+                                ))}
+                            </select>
+                        </div>
+
+                        {/* INPUT DE MOTIVO (Adaptado para usar 'motivo' en lugar de 'inputValue') */}
                         <div className="mb-3">
                             <label htmlFor="modalInput" className="form-label">{inputLabel}</label>
                             <textarea 
                                 id="modalInput"
                                 className="form-control"
                                 rows="3"
-                                value={inputValue}
-                                onChange={(e) => setInputValue(e.target.value)}
+                                value={motivo}
+                                onChange={(e) => setMotivo(e.target.value)}
                             />
                         </div>
                     </div>

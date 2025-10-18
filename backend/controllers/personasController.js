@@ -593,87 +593,126 @@ const resetPassword = async (req, res) => {
   }
 };
 
-
 const modificarEstadoCuenta = async (req, res) => {
-    const { id } = req.params; // ID de la persona a ser afectada
-    const { nuevoEstado, motivo } = req.body; // 'Bloqueado' o 'Activo'
-    
-    // Asumimos que req.usuario.id es inyectado por el middleware JWT del administrador
-    const adminId = req.usuario.id; 
+    const { id } = req.params;
+    // NUEVOS CAMPOS: duracionBloqueoDias (en días)
+    const { nuevoEstado, motivo, duracionBloqueoDias } = req.body; 
+    
+    const adminId = req.usuario.id; 
 
-    // Validación de entrada
-    if (!['Activo', 'Bloqueado'].includes(nuevoEstado)) {
-        return res.status(400).json({ error: 'Estado de cuenta inválido. Solo se permite "Activo" o "Bloqueado".' });
-    }
-
-    try {
-        const pool = await poolPromise;
-        
-        // 1. Obtener el estado actual
-        const result = await pool.request()
-            .input('id', sql.Int, id)
-            .query('SELECT estado_cuenta FROM Persona WHERE id = @id');
-        
-        const estadoAnterior = result.recordset[0]?.estado_cuenta;
-        
-        if (!estadoAnterior) {
-             return res.status(404).json({ mensaje: 'Persona no encontrada.' });
-        }
-
-        // 2. (Skipping tipoCambio variable as it's only for audit)
-        
-        // 3. Actualizar el estado en la tabla Persona
-        const updateResult = await pool.request()
-            .input('id', sql.Int, id)
-            .input('nuevoEstado', sql.VarChar, nuevoEstado)
-            .query(`
-                UPDATE Persona 
-                SET estado_cuenta = @nuevoEstado 
-                WHERE id = @id AND estado_cuenta <> @nuevoEstado 
-            `);
-            
-        if (updateResult.rowsAffected[0] === 0 && estadoAnterior !== nuevoEstado) {
-             return res.status(404).json({ mensaje: 'Persona no encontrada o estado sin cambio.' });
-        }
-
-        if (updateResult.rowsAffected[0] > 0) {
-                // Determinar el TipoCambio
-                let tipoCambio;
-                let observaciones = motivo || `Cambio de estado de ${estadoAnterior} a ${nuevoEstado}`;
-                
-                if (nuevoEstado === 'Bloqueado') {
-                    tipoCambio = 'BLOQUEO';
-                    if (!motivo) observaciones = 'Bloqueo de cuenta sin motivo especificado.'; // Requiere motivo
-                } else if (nuevoEstado === 'Activo' && estadoAnterior === 'Bloqueado') {
-                    tipoCambio = 'DESBLOQUEO';
-                } else if (nuevoEstado === 'Activo' && estadoAnterior === 'Eliminado') {
-                    tipoCambio = 'REACTIVACION';
-                } else {
-                    tipoCambio = 'UPDATE_ESTADO'; // Para otros cambios de estado no cubiertos
-                }
-
-                // 4. Registrar la acción en la tabla de Auditoría
-                await registrarAuditoria(
-                    pool, 
-                    parseInt(id), 
-                    adminId, 
-                    tipoCambio, 
-                    observaciones, 
-                    'estado_cuenta', 
-                    estadoAnterior, 
-                    nuevoEstado
-                );
+    if (!['Activo', 'Bloqueado'].includes(nuevoEstado)) {
+        return res.status(400).json({ error: 'Estado de cuenta inválido. Solo se permite "Activo" o "Bloqueado".' });
+    }
+    
+    let fechaFinBloqueo = null;
+    let duracionDiasNumerica = null;
+    
+    if (nuevoEstado === 'Bloqueado') {
+        if (!motivo) {
+             return res.status(400).json({ error: 'El bloqueo requiere un motivo especificado.' });
+        }
+        
+        // Si duracionBloqueoDias existe y no es 'indefinido' (que vendría del frontend)
+        if (duracionBloqueoDias && duracionBloqueoDias !== 'indefinido') {
+            duracionDiasNumerica = parseInt(duracionBloqueoDias);
+            
+            if (isNaN(duracionDiasNumerica) || duracionDiasNumerica <= 0) {
+                 return res.status(400).json({ error: 'Duración de bloqueo inválida.' });
             }
+            
+            // 💡 Calcular la fecha de fin
+            const fechaActual = new Date();
+            // Sumar los días
+            fechaActual.setDate(fechaActual.getDate() + duracionDiasNumerica);
+            // Formato ISO para inserción segura en DATETIME2 de SQL Server
+            fechaFinBloqueo = fechaActual.toISOString(); 
+        }
+        // Si duracionBloqueoDias es 'indefinido' o nulo, fechaFinBloqueo se mantiene en null.
+    }
 
-        res.status(200).json({ 
-            mensaje: `Cuenta de ID ${id} cambiada a estado: ${nuevoEstado}.`,
-            estado: nuevoEstado 
-        });
+    try {
+        const pool = await poolPromise;
+        
+        // 1. Obtener estado anterior (solo lectura)
+        const result = await pool.request()
+            .input('id', sql.Int, id)
+            .query('SELECT estado_cuenta FROM Persona WHERE id = @id');
+        
+        const estadoAnterior = result.recordset[0]?.estado_cuenta;
+        
+        if (!estadoAnterior) {
+             return res.status(404).json({ mensaje: 'Persona no encontrada.' });
+        }
+        
+        // 2. Construir la consulta de actualización
+        const request = pool.request()
+            .input('id', sql.Int, id)
+            .input('nuevoEstado', sql.VarChar, nuevoEstado);
 
-    } catch (err) {
-        console.error(`Error al modificar el estado de la cuenta:`, err);
-        res.status(500).json({ error: 'Error del servidor al cambiar el estado de la cuenta.' });
-    }
+        let setClause = 'SET estado_cuenta = @nuevoEstado';
+        
+        if (nuevoEstado === 'Bloqueado') {
+             // 💡 Bloqueo temporal o indefinido: Setea la fecha o NULL
+             setClause += ', fecha_fin_bloqueo = @fechaFinBloqueo';
+             request.input('fechaFinBloqueo', sql.DateTime2, fechaFinBloqueo); // Usa DateTime2 para coincidir con SQL
+        } else if (nuevoEstado === 'Activo' && estadoAnterior === 'Bloqueado') {
+             // 💡 Desbloqueo: Limpia la fecha de fin de bloqueo.
+             setClause += ', fecha_fin_bloqueo = NULL';
+        }
+        // Si el estado anterior era 'Eliminado' y se cambia a 'Activo', también se limpia el campo.
+        // Si no estamos en Bloqueado/Desbloqueo, el campo queda igual o se limpia según la lógica anterior.
+        
+        const updateResult = await request.query(`
+            UPDATE Persona 
+            ${setClause} 
+            WHERE id = @id AND estado_cuenta <> @nuevoEstado 
+        `);
+            
+        // ... (Manejo de rowsAffected y Auditoría)
+        if (updateResult.rowsAffected[0] > 0) {
+                 let tipoCambio;
+                 let observaciones = motivo || `Cambio de estado de ${estadoAnterior} a ${nuevoEstado}`;
+                 
+                 if (nuevoEstado === 'Bloqueado') {
+                     tipoCambio = 'BLOQUEO';
+                     if (fechaFinBloqueo) {
+                         observaciones += ` (Temporal por ${duracionDiasNumerica} días)`;
+                     } else {
+                         observaciones += ` (Indefinido)`;
+                     }
+                 } else if (nuevoEstado === 'Activo' && estadoAnterior === 'Bloqueado') {
+                     tipoCambio = 'DESBLOQUEO';
+                 } else if (nuevoEstado === 'Activo' && estadoAnterior === 'Eliminado') {
+                     tipoCambio = 'REACTIVACION';
+                 } else {
+                     tipoCambio = 'UPDATE_ESTADO';
+                 }
+                 
+                 await registrarAuditoria(
+                     pool, 
+                     parseInt(id), 
+                     adminId, 
+                     tipoCambio, 
+                     observaciones, 
+                     'estado_cuenta', 
+                     estadoAnterior, 
+                     nuevoEstado
+                 );
+        }
+
+        const mensajeBloqueo = fechaFinBloqueo 
+            ? ` (Desbloqueo automático el: ${new Date(fechaFinBloqueo).toLocaleDateString()})` 
+            : (nuevoEstado === 'Bloqueado' ? ' (Bloqueo Indefinido)' : '');
+            
+        res.status(200).json({ 
+            mensaje: `Cuenta de ID ${id} cambiada a estado: ${nuevoEstado}.${mensajeBloqueo}`,
+            estado: nuevoEstado 
+        });
+
+    } catch (err) {
+        console.error(`Error al modificar el estado de la cuenta:`, err);
+        res.status(500).json({ error: 'Error del servidor al cambiar el estado de la cuenta.' });
+    }
 };
 
 const eliminarCuentaLogica = async (req, res) => {
