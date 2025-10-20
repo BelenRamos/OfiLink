@@ -8,10 +8,9 @@ const MisSolicitudes = () => {
   const { usuario, isLoading } = useAuth(); 
   const [solicitudes, setSolicitudes] = useState([]);
   const [mostrarModal, setMostrarModal] = useState(false); 
-  // 💡 NUEVO ESTADO para mostrar mensajes de error/info
   const [mensaje, setMensaje] = useState(''); 
 
-    // Función auxiliar para el manejo detallado de errores (replicado de Oficios)
+    // Función auxiliar para el manejo detallado de errores 
     const extractErrorMessage = (error, defaultMessage) => {
         const errorBody = error.response || {};
         const errorMessage = errorBody.error || defaultMessage;
@@ -19,18 +18,17 @@ const MisSolicitudes = () => {
     };
 
   const cargarSolicitudes = useCallback(async () => {
-    setMensaje(''); // Limpiar el mensaje antes de intentar cargar
+    setMensaje(''); 
     try {
       const data = await apiFetch("/api/solicitudes/cliente"); 
       setSolicitudes(data);
-    setMensaje(''); // Limpiar si la carga fue exitosa
+    setMensaje(''); 
     } catch (error) {
-      // 💡 REEMPLAZO DE alert()
       const defaultMessage = "Error al cargar solicitudes. Verifica tu conexión o sesión.";
       const fullMessage = extractErrorMessage(error, defaultMessage);
 
       console.error("Error al cargar solicitudes:", error);
-      setMensaje(fullMessage); // ⬅️ Mostrar el mensaje en el estado
+      setMensaje(fullMessage); 
     }
   }, []);
 
@@ -77,7 +75,7 @@ const MisSolicitudes = () => {
       <SolicitudModal
         show={mostrarModal}
         onClose={() => setMostrarModal(false)}
-        onSolicitudCreada={cargarSolicitudes} // Esto recarga la lista al crear una nueva solicitud
+        onSolicitudCreada={cargarSolicitudes} 
       />
     </div>
   );

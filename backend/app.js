@@ -6,7 +6,8 @@ const path = require('path');
 
 //CRON --> Para la actualizacion de estado de contratacion
 const cron = require('node-cron');
-const { updateContratacionesEnCurso } = require('./controllers/contratacionesController');
+const { updateContratacionesEnCurso, updateContratacionesCaducadas } = require('./controllers/contratacionesController');
+const { updateSolicitudesCaducadas} = require('./controllers/solicitudesController');
 
 // Middleware para parsear JSON y habilitar CORS 49753
 app.use(express.json());
@@ -69,6 +70,13 @@ app.use('/uploads/personas', express.static(uploadsPath));
 cron.schedule('*/2 * * * *', () => {
   console.log("⏳ Revisando contrataciones...");
   updateContratacionesEnCurso();
+  updateContratacionesCaducadas();
+});
+
+// Se ejecuta cada 30 minutos
+cron.schedule('*/2 * * * *', () => {
+  console.log("⏳ Revisando contrataciones...");
+    updateSolicitudesCaducadas();
 });
 
 

@@ -1,35 +1,39 @@
 import { useState, useEffect } from 'react';
 
-// Componente Modal para Agregar/Editar Oficios
 const OficioModal = ({ oficio, onClose, onSave }) => {
-    // Inicializa el estado del formulario con los datos del oficio (si existe)
-    // o como vacíos para un nuevo oficio.
     const [nombre, setNombre] = useState(oficio ? oficio.Nombre : '');
     const [descripcion, setDescripcion] = useState(oficio ? oficio.Descripcion : '');
+    const [errorValidacion, setErrorValidacion] = useState(''); 
 
-    // Bandera para saber si estamos editando o creando
     const isEditMode = !!oficio;
 
-    // Asegura que la descripción se cargue correctamente si el oficio cambia
     useEffect(() => {
         setNombre(oficio ? oficio.Nombre : '');
         setDescripcion(oficio ? oficio.Descripcion : '');
+        setErrorValidacion('');
     }, [oficio]);
 
     const handleSubmit = (e) => {
         e.preventDefault();
-        
+        setErrorValidacion(''); 
+
         if (!nombre.trim()) {
-            alert("El nombre del oficio es obligatorio.");
+            setErrorValidacion("El nombre del oficio es obligatorio.");
             return;
         }
 
-        // Llama a la función onSave con los datos limpios del formulario
         onSave({ nombre, descripcion: descripcion || null }); 
+
+    };
+    
+    const handleNombreChange = (e) => {
+        setNombre(e.target.value);
+        if (errorValidacion) {
+            setErrorValidacion('');
+        }
     };
 
     return (
-        // El modal de Bootstrap
         <div className="modal show d-block" tabIndex="-1" style={{ backgroundColor: 'rgba(0,0,0,0.5)' }}>
             <div className="modal-dialog">
                 <div className="modal-content">
@@ -37,6 +41,13 @@ const OficioModal = ({ oficio, onClose, onSave }) => {
                         <h5 className="modal-title">{isEditMode ? '✏️ Editar Oficio' : '➕ Agregar Nuevo Oficio'}</h5>
                         <button type="button" className="btn-close" onClick={onClose}></button>
                     </div>
+                    
+                    {errorValidacion && (
+                        <div className="alert alert-danger mx-3 mt-3 mb-0" role="alert">
+                            {errorValidacion}
+                        </div>
+                    )}
+                    
                     <form onSubmit={handleSubmit}>
                         <div className="modal-body">
                             <div className="mb-3">
@@ -46,7 +57,7 @@ const OficioModal = ({ oficio, onClose, onSave }) => {
                                     className="form-control"
                                     id="nombre"
                                     value={nombre}
-                                    onChange={(e) => setNombre(e.target.value)}
+                                    onChange={handleNombreChange}
                                     required
                                 />
                             </div>

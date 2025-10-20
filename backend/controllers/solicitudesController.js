@@ -9,6 +9,7 @@ const ESTADOS_SOLICITUD = {
   TOMADA: 2,
   CERRADA: 3,
   CANCELADA: 4,
+  CADUCADA: 5,
 };
 
 const oficioSubQuery = `
@@ -261,11 +262,31 @@ const tomarSolicitud = async (req, res) => {
   }
 };
 
+// Tarea CRON para actualizar solicitudes a 'Caducada'
+const updateSolicitudesCaducadas = async () => {
+  try {
+    const pool = await poolPromise;
+    await pool.request()
+      .input('estadoCaducada', sql.Int, ESTADOS_SOLICITUD.CADUCADA)
+      .input('estadoAbierta', sql.Int, ESTADOS_SOLICITUD.ABIERTA)
+      .query(`
+        UPDATE Solicitud
+        SET estado_id = @estadoCaducada
+        WHERE estado_id = @estadoAbierta
+          AND CAST(fecha AS DATE) < CAST(GETDATE() AS DATE) 
+      `);
+    console.log("Solicitudes actualizadas a 'Caducadas' -- Nadie las tomo :(");
+  } catch (error) {
+    console.error("Error al actualizar solicitudes caducadas:", error);
+  }
+};
+
 module.exports = {
   verificarToken,
   getSolicitudesCliente,
   getSolicitudesTrabajador,
   createSolicitud,
   cancelarSolicitud,
-  tomarSolicitud
+  tomarSolicitud,
+  updateSolicitudesCaducadas
 };

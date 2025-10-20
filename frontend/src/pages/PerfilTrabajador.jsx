@@ -3,7 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import FormularioContratacion from '../components/FormularioContratacion';
 import DenunciaModal from "../components/DenunciaModal";
 
-const BACKEND_BASE_URL = 'http://localhost:3000'; 
+const BACKEND_BASE_URL = 'http://localhost:3000';
 const DEFAULT_AVATAR = '/default-avatar.png';
 
 const PerfilTrabajador = () => {
@@ -17,9 +17,20 @@ const PerfilTrabajador = () => {
   const [mostrarDenuncia, setMostrarDenuncia] = useState(false);
 
   const [mostrandoFormulario, setMostrandoFormulario] = useState(false);
-  //const [contratacionExitosa, setContratacionExitosa] = useState(false);
+  // Nuevo estado para mostrar mensajes de éxito/error (como la denuncia o contratación)
+  const [mensajeFeedback, setMensajeFeedback] = useState({ tipo: '', mensaje: '' }); 
 
   // Cargar usuario y datos del trabajador
+  useEffect(() => {
+    // Limpiar mensaje después de un tiempo si existe
+    if (mensajeFeedback.mensaje) {
+      const timer = setTimeout(() => {
+        setMensajeFeedback({ tipo: '', mensaje: '' });
+      }, 5000); // El mensaje desaparece después de 5 segundos
+      return () => clearTimeout(timer);
+    }
+  }, [mensajeFeedback]);
+
   useEffect(() => {
     const usuarioGuardado = localStorage.getItem('usuarioActual');
     if (usuarioGuardado) {
@@ -46,15 +57,35 @@ const PerfilTrabajador = () => {
       }
     };
 
+    // Al cargar los datos, asegúrate de limpiar cualquier mensaje anterior.
+    setMensajeFeedback({ tipo: '', mensaje: '' });
+    
     Promise.all([fetchTrabajador(), fetchReseñas()]).finally(() =>
       setLoading(false)
     );
   }, [id]);
 
+  /**
+   * Manejador de éxito para la creación de una Contratación.
+   */
+  const handleContratacionExitosa = () => {
+    setMostrandoFormulario(false);
+    // Establecer mensaje de éxito
+    setMensajeFeedback({ tipo: 'success', mensaje: 'Contratación creada con éxito.' });
+  };
+
+  /**
+   * Manejador de éxito para la creación de una Denuncia.
+   */
+  const handleDenunciaExitosa = () => {
+    setMostrarDenuncia(false);
+    // Establecer mensaje de éxito
+    setMensajeFeedback({ tipo: 'success', mensaje: 'Denuncia enviada con éxito. Revisaremos la situación.' });
+  }
 
   if (loading) return <div className="container mt-4">Cargando...</div>;
 
-  const fotoUrl = trabajador.foto_url ? BACKEND_BASE_URL + trabajador.foto_url : DEFAULT_AVATAR;
+  const fotoUrl = trabajador.foto_url ? BACKEND_BASE_URL + trabajador.foto_url : DEFAULT_AVATAR;
 
   if (!trabajador)
     return (
@@ -62,6 +93,9 @@ const PerfilTrabajador = () => {
         <p>Trabajador no encontrado.</p>
       </div>
     );
+
+  // Mapeamos el tipo de feedback a la clase de Bootstrap
+  const alertClass = mensajeFeedback.tipo === 'success' ? 'alert-success' : 'alert-danger';
 
   return (
     <div className="container mt-4">
@@ -72,24 +106,28 @@ const PerfilTrabajador = () => {
         ← Volver
       </button>
 
-      <div className="d-flex align-items-center mb-3">
-        <img
-          src={fotoUrl}
-          alt={`Foto de ${trabajador.nombre}`}
-          style={{ width: '100px', height: '100px', objectFit: 'cover', borderRadius: '50%' }}
-          className="me-3 border"
-        />
-        <div>
-          <h2>{trabajador.nombre}</h2>
-          <h5 className="text-muted">
-            {trabajador.oficios?.join(', ')} - {trabajador.zona}
-          </h5>
-        </div>
-      </div>
-      <h2>{trabajador.nombre}</h2>
-      <h5 className="text-muted">
-        {trabajador.oficios?.join(', ')} - {trabajador.zona}
-      </h5>
+      {/* Mostrar mensaje de feedback */}
+      {mensajeFeedback.mensaje && (
+        <div className={`alert ${alertClass} mb-4`}>
+          {mensajeFeedback.mensaje}
+        </div>
+      )} 
+
+      <div className="d-flex align-items-center mb-3">
+        <img
+          src={fotoUrl}
+          alt={`Foto de ${trabajador.nombre}`}
+          style={{ width: '100px', height: '100px', objectFit: 'cover', borderRadius: '50%' }}
+          className="me-3 border"
+        />
+        <div>
+          <h2>{trabajador.nombre}</h2>
+          <h5 className="text-muted">
+            {trabajador.oficios?.join(', ')} - {trabajador.zona}
+          </h5>
+        </div>
+      </div>
+      {/* Se eliminan los h2 y h5 duplicados que estaban más abajo, manteniendo solo los del d-flex */}
       <p>{trabajador.descripcion}</p>
       <p>
         <strong>Teléfono:</strong>{' '}
@@ -98,20 +136,20 @@ const PerfilTrabajador = () => {
 
       <hr />
 
-      {usuario.roles_keys?.includes('cliente') && trabajador.disponible && (
+      {usuario?.roles_keys?.includes('cliente') && trabajador.disponible && (
         mostrandoFormulario ? (
           <FormularioContratacion
             idTrabajador={trabajador.id}
             onCancel={() => setMostrandoFormulario(false)}
-            onSuccess={() => {
-              setMostrandoFormulario(false);
-              alert('Contratación creada con éxito');
-            }}
+            onSuccess={handleContratacionExitosa} 
           />
         ) : (
           <button
             className="btn btn-primary mt-3"
-            onClick={() => setMostrandoFormulario(true)}
+            onClick={() => {
+                setMostrandoFormulario(true);
+                setMensajeFeedback({ tipo: '', mensaje: '' }); // Limpiar mensaje al abrir form
+            }}
           >
             Contratar
           </button>
@@ -120,8 +158,11 @@ const PerfilTrabajador = () => {
 
       {usuario?.roles_keys?.includes('cliente') && (
         <button
-          className="btn btn-danger mt-3"
-          onClick={() => setMostrarDenuncia(true)}>
+          className="btn btn-danger mt-3 ms-2" // Añadido ms-2 para separación
+          onClick={() => {
+              setMostrarDenuncia(true);
+              setMensajeFeedback({ tipo: '', mensaje: '' }); // Limpiar mensaje al abrir modal
+          }}>
           Denunciar trabajador
         </button>
       )}
@@ -131,7 +172,7 @@ const PerfilTrabajador = () => {
         onHide={() => setMostrarDenuncia(false)}
         trabajadorId={trabajador.id}
         usuario={usuario}
-        onDenunciaCreada={() => console.log("Denuncia enviada")}
+        onDenunciaCreada={handleDenunciaExitosa} 
       />
 
       <h3>Reseñas</h3>

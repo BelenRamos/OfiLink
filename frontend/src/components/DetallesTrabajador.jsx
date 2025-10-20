@@ -1,5 +1,5 @@
 import React from 'react';
-import { apiFetch } from '../utils/apiFetch'; // Asegúrate de importar esto
+import { apiFetch } from '../utils/apiFetch'; 
 
 const DetallesTrabajador = ({ perfilTrabajador, setPerfilTrabajador }) => {
   if (!perfilTrabajador) {
@@ -9,16 +9,13 @@ const DetallesTrabajador = ({ perfilTrabajador, setPerfilTrabajador }) => {
   const handleDisponibilidadChange = async (e) => {
     const nuevoEstado = e.target.checked;
     try {
-      // Petición PUT a la API para actualizar la disponibilidad
       await apiFetch(`/api/trabajadores/${perfilTrabajador.id}/disponibilidad`, {
         method: 'PUT',
         body: JSON.stringify({ disponible: nuevoEstado })
       });
-      // Actualizar el estado local si la API responde correctamente
       setPerfilTrabajador({ ...perfilTrabajador, disponible: nuevoEstado });
     } catch (err) {
       console.error('Error al cambiar disponibilidad', err);
-      // Opcional: Revertir el estado del switch si hay error
     }
   };
 

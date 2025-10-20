@@ -7,22 +7,33 @@ const CardSolicitudes = ({ solicitud, usuario, onActualizar }) => {
     const tomarSolicitud = async () => {
         try {
             await apiFetch(`/api/solicitudes/${id}/tomar`, { method: "PUT" });
-            alert("Solicitud tomada correctamente y Contratación creada.");
-            onActualizar();
+            
+            onActualizar('success', '¡Solicitud tomada correctamente! ¡Contratación creada!'); 
+            
         } catch (error) {
             console.error("Error al tomar la solicitud:", error);
-            alert("Ocurrió un error al intentar tomar la solicitud. Verifica tu sesión o el estado de la solicitud.");
+
+            const defaultMessage = "Ocurrió un error al intentar tomar la solicitud. Verifica tu sesión o el estado.";
+            const errorMessage = error.response?.error || defaultMessage;
+            
+            // ✅ Reemplazado por llamada a onActualizar con tipo 'error'
+            onActualizar('error', errorMessage);
         }
     };
 
     const cancelarSolicitud = async () => {
         try {
             await apiFetch(`/api/solicitudes/${id}/cancelar`, { method: "PUT" });
-            alert("Solicitud cancelada.");
-            onActualizar();
+            
+            onActualizar('success', 'Solicitud cancelada correctamente.'); 
+            
         } catch (error) {
             console.error("Error al cancelar la solicitud:", error);
-            alert("Ocurrió un error al intentar cancelar la solicitud.");
+            
+            const defaultMessage = "Ocurrió un error al intentar cancelar la solicitud.";
+            const errorMessage = error.response?.error || defaultMessage;
+            
+            onActualizar('error', errorMessage);
         }
     };
 
@@ -42,7 +53,7 @@ const CardSolicitudes = ({ solicitud, usuario, onActualizar }) => {
                     {/* Mostrar los oficios requeridos como una lista legible */}
                     <strong>Oficios:</strong> {oficiosDisplay} <br /> 
                     
-                    <strong>Estado:</strong> <span className={`badge ${estado === 'Abierta' ? 'bg-success' : estado === 'Cancelada' ? 'bg-danger' : 'bg-warning text-dark'}`}>{estado}</span>
+                    <strong>Estado:</strong> <span className={`badge ${estado === 'Abierta' ? 'bg-success' : estado === 'Cancelada' ? 'bg-danger' : estado === 'Caducada' ? 'bg-secondary'  :'bg-warning text-dark'}`}>{estado}</span>
                 </p>
                 {/* Aca se aplicaran los permisos*/}
                 <div className="d-flex gap-2">

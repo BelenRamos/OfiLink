@@ -1,8 +1,7 @@
 import React, { useState, useEffect } from "react";
-import { apiFetch } from "../utils/apiFetch"; // Asumo que usas apiFetch para peticiones autenticadas
+import { apiFetch } from "../utils/apiFetch"; 
 
 const FormularioEditarPerfil = ({ usuario, onUpdate, onCancel }) => {
-  // Inicializamos el estado del formulario con los datos actuales del usuario
   const [form, setForm] = useState({
     nombre: usuario.nombre || "",
     contacto: usuario.contacto || "",
@@ -13,9 +12,7 @@ const FormularioEditarPerfil = ({ usuario, onUpdate, onCancel }) => {
   const [ok, setOk] = useState("");
   const [cargando, setCargando] = useState(false);
 
-  // Asegúrate de formatear la fecha_nacimiento al formato YYYY-MM-DD para el input[type="date"]
   useEffect(() => {
-    // La fecha puede venir como 'YYYY-MM-DDTHH:MM:SSZ', solo queremos la parte de la fecha
     const fechaFormateada = usuario.fecha_nacimiento 
       ? usuario.fecha_nacimiento.split('T')[0] 
       : "";
@@ -59,18 +56,16 @@ const FormularioEditarPerfil = ({ usuario, onUpdate, onCancel }) => {
     }
 
     try {
-      // Usamos el ID del usuario para hacer la petición de actualización (PUT/PATCH)
       const dataActualizada = await apiFetch(`/api/personas/${usuario.id}`, {
-        method: 'PUT', // O PATCH, dependiendo de tu API
+        method: 'PUT', 
         body: JSON.stringify({
           nombre: form.nombre,
           contacto: form.contacto,
-          fecha_nacimiento: form.fecha_nacimiento, // Se envía la fecha en el formato del input
+          fecha_nacimiento: form.fecha_nacimiento,
         }),
       });
 
       setOk("Perfil actualizado correctamente.");
-      // Llamamos a la función callback para actualizar el estado en MiPerfil
       onUpdate(dataActualizada); 
     } catch (err) {
       const apiErr = err?.response?.data?.error || "Error al actualizar perfil.";

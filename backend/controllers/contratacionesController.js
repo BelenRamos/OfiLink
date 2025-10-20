@@ -10,6 +10,7 @@ const ESTADOS = {
   EN_CURSO: 3,
   FINALIZADA: 4,
   CANCELADA: 5,
+  CADUCADA: 6,
 };
 
 // Middleware para verificar y decodificar el token
@@ -320,10 +321,31 @@ const updateContratacionesEnCurso = async () => {
   }
 };
 
+const updateContratacionesCaducadas = async () => {
+  try {
+    const pool = await poolPromise;
+    await pool.request()
+      .input('estadoCaducada', sql.Int, ESTADOS.CADUCADA)
+      .input('estadoPendiente', sql.Int, ESTADOS.PENDIENTE)
+      .query(`
+        UPDATE Contratacion
+        SET estado_id = @estadoCaducada,
+            fecha_fin = GETDATE()
+        WHERE estado_id = @estadoPendiente
+          AND CAST(fecha_inicio AS DATE) < CAST(GETDATE() AS DATE) 
+      `);
+
+    console.log("Contrataciones actualizadas a 'Caducadas' -- Se paso de la fecha propuesta");
+  } catch (error) {
+    console.error("Error al actualizar contrataciones caducadas:", error);
+  }
+};
+
 module.exports = {
   getContrataciones,
   createContratacion,
   manejarAccionContratacion,
   updateContratacionesEnCurso,
+  updateContratacionesCaducadas,
   verificarToken
 };

@@ -18,9 +18,6 @@ const FormularioEditarTrabajador = ({
     disponibilidad_horaria: perfilTrabajador?.disponibilidad_horaria || "",
     oficiosIds: perfilTrabajador?.oficiosIds || [], 
     zonasIds: perfilTrabajador?.zonasIds || [],
-    // NOTA: Si tu API devuelve 'oficios' como un array de strings (nombres) o 'zonas' como strings,
-    // tendrás que hacer un mapeo de Nombre a Id en el useEffect.
-    // Asumo que tienes los IDs disponibles en 'perfilTrabajador'. Si no, ver la nota al final.
   });
 
   useEffect(() => {

@@ -2,13 +2,11 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth'; 
 
-
 const Login = () => {
     // Obtenemos el estado y la función setUsuario del contexto
     const { usuario, loginUser } = useAuth();
     
     const [credenciales, setCredenciales] = useState({ usuario: '', password: '' });
-    // 💡 NUEVO ESTADO para el mensaje de error
     const [errorMensaje, setErrorMensaje] = useState(''); 
     const navigate = useNavigate();
 
@@ -26,12 +24,12 @@ const Login = () => {
 
     const handleChange = (e) => {
         setCredenciales({ ...credenciales, [e.target.name]: e.target.value });
-        setErrorMensaje(''); // 💡 Limpiamos el error al cambiar los inputs
+        setErrorMensaje('');
     };
 
     const handleLogin = async (e) => {
         e.preventDefault();
-        setErrorMensaje(''); // Limpiamos errores anteriores antes de la petición
+        setErrorMensaje(''); 
 
         try {
             const res = await fetch('/api/auth/login', {
@@ -47,9 +45,8 @@ const Login = () => {
                 throw new Error(errorData.error || 'Acceso denegado. Verifica tus permisos.'); 
             }
 
-            // Manejo de otros errores HTTP (400, 401, 500, etc.)
+            // Manejo de otros errores HTTP 
             if (!res.ok) {
-                // Intentamos leer el mensaje de error del cuerpo si está disponible
                 const errorData = await res.json().catch(() => ({})); 
                 throw new Error(errorData.error || 'Credenciales incorrectas o error de conexión.'); 
             }
@@ -66,11 +63,10 @@ const Login = () => {
                 token
             };
             
-            // Usamos loginUser para guardar en localStorage y decodificar el token
-            loginUser(usuarioNormalizado); 
+            loginUser(usuarioNormalizado); // Usamos loginUser para guardar en localStorage y decodificar el token
 
         } catch (err) {
-            // 💡 En lugar de alert(), establecemos el mensaje de error en el estado
+
             setErrorMensaje(err.message);
         }
     };
@@ -79,16 +75,13 @@ const Login = () => {
         return <p className="container mt-4">Iniciando sesión...</p>;
     }
     
-    // Si no hay usuario, mostramos el formulario
     return (
         <div className="container mt-4" style={{ maxWidth: '400px' }}>
             <h2 className="mb-4">Ingresar</h2>
             
-            {/* 💡 MOSTRAR EL MENSAJE DE ERROR AQUÍ */}
             {errorMensaje && <div className="alert alert-danger">{errorMensaje}</div>} 
 
             <form onSubmit={handleLogin}>
-                {/* ... (Tus inputs de formulario) ... */}
                 <div className="mb-3">
                     <label className="form-label">Email</label>
                     <input
