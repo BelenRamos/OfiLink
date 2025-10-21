@@ -32,6 +32,7 @@ const upload = multer({
   limits: { fileSize: 2 * 1024 * 1024 } // 2MB
 });
 
+
 const uploadMiddleware = (req, res, next) => {
     upload.single('foto')(req, res, (err) => {
         if (err instanceof multer.MulterError) {
@@ -91,48 +92,150 @@ const registrarAuditoria = async (pool, PersonaId, UsuarioAccionId, TipoCambio, 
     }
 };
 
+const ID_SISTEMA = 1;
+
+// Función CRON para desbloquear cuentas vencidas
+const desbloquearCuentasVencidas = async () => {
+    let pool;
+    let cuentasDesbloqueadas = 0;
+
+    try {
+        pool = await poolPromise;
+
+        // 1. Obtener los IDs de las cuentas que necesitan ser desbloqueadas
+        const resultIds = await pool.request().query(`
+            SELECT id AS PersonaId
+            FROM Persona
+            WHERE estado_cuenta = 'Bloqueado'
+              AND fecha_fin_bloqueo IS NOT NULL
+              AND fecha_fin_bloqueo <= GETDATE();
+        `);
+
+        const idsAfectados = resultIds.recordset;
+
+        if (idsAfectados.length === 0) {
+            console.log("✅ No hay cuentas para desbloquear.");
+            return;
+        }
+
+        // 2. Iterar sobre los IDs, actualizar y auditar individualmente
+        for (const { PersonaId } of idsAfectados) {
+            let transaction;
+            try {
+                // Iniciar una transacción para asegurar que la actualización y auditoría sean atómicas por cuenta
+                transaction = new sql.Transaction(pool);
+                await transaction.begin();
+
+                // 2a. Actualizar el estado de la cuenta
+                await transaction.request()
+                    .input('id', sql.Int, PersonaId)
+                    .query(`
+                        UPDATE Persona
+                        SET estado_cuenta = 'Activo',
+                            fecha_fin_bloqueo = NULL
+                        WHERE id = @id;
+                    `);
+
+                // 2b. Registrar la auditoría usando la función auxiliar
+                await registrarAuditoria(
+                    transaction, // Pasamos la transacción para incluirla en el commit
+                    PersonaId,
+                    ID_SISTEMA,
+                    'DESBLOQUEO_AUTO',
+                    'Desbloqueo automático por expiración de fecha de bloqueo.',
+                    'estado_cuenta',
+                    'Bloqueado', // Valor anterior siempre es 'Bloqueado'
+                    'Activo'
+                );
+                
+                // 2c. Confirmar la operación
+                await transaction.commit();
+                cuentasDesbloqueadas++;
+
+            } catch (errorTransaccion) {
+                // Si falla la actualización o la auditoría de una cuenta, hacer rollback solo de esa cuenta
+                if (transaction) {
+                    await transaction.rollback();
+                }
+                console.error(`Error al procesar el desbloqueo/auditoría para Persona ID ${PersonaId}:`, errorTransaccion.message);
+                // NOTA: Se ignora este error y se sigue con las demás cuentas.
+            }
+        }
+
+        if (cuentasDesbloqueadas > 0) {
+            console.log(`🔓 ${cuentasDesbloqueadas} cuentas desbloqueadas y auditadas automáticamente.`);
+        }
+
+    } catch (errorGeneral) {
+        console.error("Error CRÍTICO al obtener cuentas vencidas:", errorGeneral);
+    }
+};
+
+//Foto de perfil
+const BACKEND_ROOT = path.join(__dirname, '..', '..');
+
 const subirFoto = async (req, res) => {
-  const id = parseInt(req.params.id);
-  
-  const fotoUrl = `/uploads/personas/${req.file.filename}`;
+    const id = parseInt(req.params.id);
+    const fotoUrl = `/uploads/personas/${req.file.filename}`;
+    let fotoAnterior = null; // Variable para almacenar la ruta de la foto antigua
 
-  try {
-    const pool = await poolPromise;
+    try {
+        const pool = await poolPromise;
 
-    // 1. Obtener foto anterior
-    const result = await pool.request()
-      .input('id', sql.Int, id)
-      .query('SELECT foto FROM Persona WHERE id = @id');
+        // 1. Obtener la foto anterior antes de cualquier cambio.
+        const result = await pool.request()
+            .input('id', sql.Int, id)
+            .query('SELECT foto FROM Persona WHERE id = @id');
 
-    const fotoAnterior = result.recordset[0]?.foto;
+        fotoAnterior = result.recordset[0]?.foto;
 
-    // 2. Actualizar BD
-    await pool.request()
-      .input('id', sql.Int, id)
-      .input('fotoUrl', sql.VarChar, fotoUrl)
-      .query('UPDATE Persona SET foto = @fotoUrl WHERE id = @id');
+        // 2. Actualizar BD con la nueva foto. 
+        // Si esto falla, el try-catch se activa y la foto antigua se salva.
+        await pool.request()
+            .input('id', sql.Int, id)
+            .input('fotoUrl', sql.VarChar, fotoUrl)
+            .query('UPDATE Persona SET foto = @fotoUrl WHERE id = @id');
 
-    // 3. Eliminar foto anterior si existe y no es la default
-    if (fotoAnterior && !fotoAnterior.includes('default-avatar.png')) {
-      const pathFotoAnterior = path.join(__dirname, '..', fotoAnterior);
-      await fs.unlink(pathFotoAnterior).catch(err => {
-            // Advertencia si la eliminación falla, pero no detenemos el proceso
-            console.warn('No se pudo eliminar foto anterior:', err.message)
-        });
-    }
+        // 3. Eliminar foto anterior si existe y no es la default.
+        if (fotoAnterior && !fotoAnterior.includes('default-avatar.png')) {
+            
+            // 💡 CORRECCIÓN RUTA: Calcula la ruta absoluta desde la raíz del backend
+            const pathFotoAnterior = path.join(BACKEND_ROOT, fotoAnterior); // Usa la constante BACKEND_ROOT que definiste
 
-    // 4. Respuesta final
-    res.json({ mensaje: 'Foto actualizada', foto_url: fotoUrl });
-  } catch (err) {
-    console.error('Error al guardar foto en DB:', err.message);
-    
-    // Si la DB falla, eliminamos la foto recién subida para evitar basura.
-    await fs.unlink(req.file.path).catch(cleanupErr => {
-        console.warn('Fallo la limpieza del archivo subido tras error de DB:', cleanupErr.message);
-    }); 
-    
-    res.status(500).json({ mensaje: 'Error interno al actualizar la BD' });
-  }
+            try {
+                // 💡 VERIFICAR SI EL ARCHIVO EXISTE ANTES DE ELIMINAR
+                await fs.access(pathFotoAnterior); 
+                
+                // Si no lanza error, el archivo existe, y lo eliminamos
+                await fs.unlink(pathFotoAnterior);
+                console.log(`[LIMPIEZA] Eliminado con éxito: ${fotoAnterior}`);
+                
+            } catch (err) {
+                // Si el error es ENOENT, simplemente ignoramos y seguimos
+                if (err.code !== 'ENOENT') {
+                    console.warn(`[WARN] No se pudo eliminar la foto anterior ${fotoAnterior}:`, err.message);
+                }
+    }
+}
+
+        // 4. Respuesta final
+        res.json({ mensaje: 'Foto actualizada', foto_url: fotoUrl });
+        
+    } catch (err) {
+        console.error('❌ Error fatal en subirFoto:', err.message);
+        
+        // 💡 LIMPIEZA CRÍTICA: Si el proceso de DB falla, eliminamos la foto nueva recién subida.
+        if (req.file && req.file.path) {
+            await fs.unlink(req.file.path)
+                .then(() => console.log(`[LIMPIEZA] Eliminada foto subida tras fallo de DB: ${req.file.filename}`))
+                .catch(cleanupErr => {
+                    console.warn('Fallo la limpieza del archivo subido tras error de DB:', cleanupErr.message);
+                });
+        }
+        
+        // El throw anterior lo detuvo, aseguramos que el frontend sepa que falló.
+        res.status(500).json({ mensaje: 'Error interno al procesar la foto.' });
+    }
 };
 
 const getResumenPersonas = async (req, res) => {
@@ -156,7 +259,6 @@ const getResumenPersonas = async (req, res) => {
     res.status(500).json({ error: 'Error al obtener el resumen de personas' });
   }
 };
-
 
 const getPersonas = async (req, res) => {
   try {
@@ -668,7 +770,6 @@ const modificarEstadoCuenta = async (req, res) => {
             WHERE id = @id AND estado_cuenta <> @nuevoEstado 
         `);
             
-        // ... (Manejo de rowsAffected y Auditoría)
         if (updateResult.rowsAffected[0] > 0) {
                  let tipoCambio;
                  let observaciones = motivo || `Cambio de estado de ${estadoAnterior} a ${nuevoEstado}`;
@@ -788,5 +889,6 @@ module.exports = {
   modificarEstadoCuenta,
   eliminarCuentaLogica,
   registrarAuditoria,
+  desbloquearCuentasVencidas,
   uploadMiddleware // Exportamos la función de middleware con el manejo de errores de Multer
 };

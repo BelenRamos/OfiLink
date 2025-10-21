@@ -7,6 +7,7 @@ const FotoPerfil = ({ userId, currentFotoUrl, onFotoUpdate }) => {
     const [cargando, setCargando] = useState(false);
     const [error, setError] = useState(null);
     const [mostrarInput, setMostrarInput] = useState(false);
+    const [version, setVersion] = useState(Date.now());
 
     
     const handleFileChange = async (e) => {
@@ -40,7 +41,10 @@ const FotoPerfil = ({ userId, currentFotoUrl, onFotoUpdate }) => {
             const data = await res.json();
         
             onFotoUpdate(data.foto_url); 
-            setMostrarInput(false); 
+
+            setVersion(Date.now()); 
+            setMostrarInput(false);
+
 
             // Limpiar el input
             e.target.value = null; 
@@ -54,16 +58,20 @@ const FotoPerfil = ({ userId, currentFotoUrl, onFotoUpdate }) => {
         }
     };
     
+    // 1. Calcular la URL base
+    const fotoServidorUrl = BACKEND_BASE_URL + currentFotoUrl;
+
+    // 2. Aplicar el cache buster si estamos usando la foto del servidor
+    const finalSrc = currentFotoUrl && currentFotoUrl !== '/default-avatar.png'
+        ? `${fotoServidorUrl}?v=${version}` // Añadimos ?v=TIMESTAMP
+        : '/default-avatar.png';
+
     return (
         <div className="mb-4 p-3 border rounded">
             <div className="d-flex align-items-end mb-3">
                 {/* 1. Visualización de la foto actual */}
                 <img
-                    src={
-                        currentFotoUrl && currentFotoUrl !== '/default-avatar.png'
-                            ? BACKEND_BASE_URL + currentFotoUrl
-                            : '/default-avatar.png'
-                    }
+                    src={finalSrc}
                     alt="Foto de perfil"
                     style={{ width: '150px', height: '150px', objectFit: 'cover', borderRadius: '8px' }}
                     className="me-3"

@@ -3,11 +3,11 @@ const app = express();
 const cors = require('cors');
 const path = require('path'); 
 
-
 //CRON --> Para la actualizacion de estado de contratacion
 const cron = require('node-cron');
 const { updateContratacionesEnCurso, updateContratacionesCaducadas } = require('./controllers/contratacionesController');
 const { updateSolicitudesCaducadas} = require('./controllers/solicitudesController');
+const { desbloquearCuentasVencidas } = require('./controllers/personasController');
 
 // Middleware para parsear JSON y habilitar CORS 49753
 app.use(express.json());
@@ -60,23 +60,30 @@ app.use('/api/estadisticas', estadisticasRoutes);
 const auditoriasRoutes = require('./routes/seguridad/auditorias');
 app.use('/api/auditorias', auditoriasRoutes);
 
+//Foto de perfil
 
-//Para la foto de perfil
-const uploadsPath = 'C:\\temp_uploads';
-app.use('/uploads/personas', express.static(uploadsPath)); 
-
+const PERSONAS_UPLOADS_PATH = path.join(__dirname, 'uploads', 'personas');
+const FOTO_UPLOADS_PATH = path.join(__dirname, 'uploads', 'personas'); 
+app.use('/uploads/personas', express.static(FOTO_UPLOADS_PATH)); 
 
 // Se ejecuta cada 30 minutos
-cron.schedule('*/2 * * * *', () => {
+cron.schedule('*/5 * * * *', () => {
   console.log("⏳ Revisando contrataciones...");
   updateContratacionesEnCurso();
   updateContratacionesCaducadas();
 });
 
 // Se ejecuta cada 30 minutos
-cron.schedule('*/2 * * * *', () => {
+cron.schedule('*/5 * * * *', () => {
   console.log("⏳ Revisando contrataciones...");
     updateSolicitudesCaducadas();
+});
+
+// Se ejecuta cada día a la medianoche
+// cron.schedule('0 0 * * *', () => {
+cron.schedule('*/2 * * * *', () => {  
+  console.log("Verificando bloqueos vencidos...");
+  desbloquearCuentasVencidas();
 });
 
 
