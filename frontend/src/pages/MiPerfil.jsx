@@ -15,7 +15,7 @@ const MiPerfil = () => {
   const [perfilTrabajador, setPerfilTrabajador] = useState(null);
   const [contrataciones, setContrataciones] = useState([]);
   const [mensaje, setMensaje] = useState(''); 
-  const { usuario: usuarioContext, logoutUser } = useAuth();
+  const { usuario: usuarioContext, logoutUser, tienePermiso, isLoading } = useAuth();
   
   // Estados para controlar la visualización de los formularios de edición
   const [isEditing, setIsEditing] = useState(false); 
@@ -23,7 +23,9 @@ const MiPerfil = () => {
   const [isDeleting, setIsDeleting] = useState(false); 
   const [showDeleteModal, setShowDeleteModal] = useState(false);
 
-  // 1. Manejo de Actualización de Datos Básicos
+  const PERMISO_VER_PERFIL = 'ver_mi_perfil';
+  const PERMISO_EDITAR_PERFIL = 'editar_mi_perfil';
+
   const handlePerfilUpdate = (datosActualizados) => {
     // Fusionar los datos actualizados con los existentes
     const nuevoUsuario = { 
@@ -39,14 +41,12 @@ const MiPerfil = () => {
     setIsEditing(false);
   };
   
-  // 2. Manejo de Actualización de Perfil de Trabajador
   const handleWorkerPerfilUpdate = (datosActualizados) => {
     setPerfilTrabajador(datosActualizados);
     setMensaje('¡Perfil de trabajador actualizado con éxito!');
     setIsWorkerEditing(false); 
   };
   
-  // 3. Manejo de Actualización de Foto (se mantiene la lógica original)
   const handleFotoUpdate = (nuevaUrl) => {
     setUsuario(prevUsuario => {
       const nuevoUsuario = { ...prevUsuario, foto_url: nuevaUrl };
@@ -63,7 +63,6 @@ const MiPerfil = () => {
     setMensaje('¡Foto de perfil actualizada!');
   };
 
-// 4. Funcion para ELIMINAR CUENTA (AHORA SOLO ABRE EL MODAL)
 const handleEliminarCuenta = () => {
     // Si la cuenta ya se está eliminando o no hay usuario, salir.
     if (!usuario || !usuario.id || isDeleting) return; 
@@ -93,12 +92,22 @@ const executeEliminarCuenta = async () => {
     }
 };
 
-  // 5. Carga Inicial de Datos
-  useEffect(() => {
-    if (isDeleting) {
-      // El useEffect ignora la falta de usuario si isDeleting es true
-      return; 
-    }
+useEffect(() => {
+    if (!tienePermiso(PERMISO_VER_PERFIL) || isDeleting) {
+      if (isDeleting) return;
+      
+      // Si el usuario no tiene permiso, se redirige
+      if (!isLoading && !usuarioContext) {
+          // El usuario no está logueado o está cargando, la verificación ocurrirá después
+          return;
+      }
+      
+      // Si el usuario ya está logueado pero no tiene el permiso, sale.
+      if (!isLoading) {
+          console.warn('Usuario no tiene permiso para ver el perfil.'); // VER!!!Podríamos redirigir a una página de error o mostrar un mensaje, pero retornamos null en el render.
+      }
+      return;
+    }
 
     if (!usuarioContext) {
       const usuarioGuardado = localStorage.getItem('usuarioActual');
@@ -149,9 +158,16 @@ const executeEliminarCuenta = async () => {
     if (parsedUsuario) {
       cargarDatos();
     }
-  }, [navigate, usuarioContext, logoutUser, isDeleting]);
+  }, [navigate, usuarioContext, logoutUser, isDeleting, tienePermiso, isLoading]);
 
-  if (!usuario) return null;
+// Bloqueo de la vista si no tiene permiso (o si no hay usuario después de la carga)
+  if (isLoading || !usuario) return null;
+  
+  if (!tienePermiso(PERMISO_VER_PERFIL)) {
+    return <h2 className="mt-4">No tienes permiso para ver tu perfil.</h2>;
+  }
+  
+  const puedeEditar = tienePermiso(PERMISO_EDITAR_PERFIL);
 
   return (
     <div className="container mt-4">
@@ -164,6 +180,7 @@ const executeEliminarCuenta = async () => {
         userId={usuario.id}
         currentFotoUrl={usuario.foto_url} 
         onFotoUpdate={handleFotoUpdate}
+        disabled={!puedeEditar} 
       />
       
       {/* ------------------------------------------------------------- */}
@@ -172,14 +189,16 @@ const executeEliminarCuenta = async () => {
         <div className="d-flex justify-content-between align-items-center mb-3">
             <h4 className="mb-0">Datos Personales</h4>
             <div>
-                <button 
-                    className="btn btn-outline-primary btn-sm me-2" 
-                    onClick={() => setIsEditing(prev => !prev)} // Alternar edición
-                >
-                    {isEditing ? 'Ocultar Edición' : 'Editar Datos'}
-                </button>
+                {/*Mostrar/Habilitar botón de edición solo si tiene permiso */}
+                {puedeEditar && (
+                    <button 
+                        className="btn btn-outline-primary btn-sm me-2" 
+                        onClick={() => setIsEditing(prev => !prev)} // Alternar edición
+                    >
+                        {isEditing ? 'Ocultar Edición' : 'Editar Datos'}
+                    </button>
+                )}
                 
-                {/* BOTÓN DE ELIMINAR CUENTA*/}
                 <button
                     className="btn btn-danger btn-sm"
                     onClick={handleEliminarCuenta}
@@ -189,17 +208,16 @@ const executeEliminarCuenta = async () => {
             </div>
         </div>
         
-        {isEditing && usuario ? (
+        {isEditing && usuario && puedeEditar ? (
             <FormularioEditarPerfil
                 usuario={usuario}
                 onUpdate={handlePerfilUpdate}
                 onCancel={() => setIsEditing(false)}
             />
         ) : (
-            // Muestra la información si isEditing es false
             <div>
                 <p><strong>Nombre:</strong> {usuario.nombre}</p>
-                <p><strong>Email:</strong> {usuario.mail}</p> {/* Email no editable */}
+                <p><strong>Email:</strong> {usuario.mail}</p> 
                 <p><strong>Teléfono:</strong> {usuario.contacto || '(a completar)'}</p>
                 <p><strong>Nacimiento:</strong> {usuario.fecha_nacimiento?.split('T')[0]}</p>
                 <p><strong>Rol:</strong> {usuario.roles_keys?.join(', ')}</p>
@@ -213,16 +231,17 @@ const executeEliminarCuenta = async () => {
         <div className="card p-3 mb-4">
             <div className="d-flex justify-content-between align-items-center">
                 <h4 className="mb-3">Detalles de Trabajador</h4>
-                <button 
-                    className="btn btn-outline-secondary btn-sm"
-                    onClick={() => setIsWorkerEditing(prev => !prev)}
-                >
-                    {isWorkerEditing ? 'Ocultar Edición' : 'Editar Oficios/Zonas'}
-                </button>
+                {puedeEditar && (
+                    <button 
+                        className="btn btn-outline-secondary btn-sm"
+                        onClick={() => setIsWorkerEditing(prev => !prev)}
+                    >
+                        {isWorkerEditing ? 'Ocultar Edición' : 'Editar Oficios/Zonas'}
+                    </button>
+                )}
             </div>
             
-            {isWorkerEditing && perfilTrabajador ? (
-                // Muestra el formulario de trabajador si isWorkerEditing es true
+            {isWorkerEditing && perfilTrabajador && puedeEditar ? (
                 <FormularioEditarTrabajador
                     userId={usuario.id}
                     perfilTrabajador={perfilTrabajador}
@@ -260,5 +279,4 @@ const executeEliminarCuenta = async () => {
     </div>
   );
 };
-
 export default MiPerfil;

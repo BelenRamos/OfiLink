@@ -1,13 +1,20 @@
 import { useEffect, useState } from 'react';
 import CardTrabajador from '../components/CardTrabajador';
 import FiltroTrabajadores from '../components/FiltroTrabajadores';
+import { useAuth } from '../hooks/useAuth';
 
 const Buscar = () => {
   const [oficio, setOficio] = useState('');
   const [zona, setZona] = useState('');
   const [trabajadores, setTrabajadores] = useState([]);
+  const { tienePermiso } = useAuth();
+  const PERMISO_VER_BUSCAR = 'ver_buscar';
 
 useEffect(() => {
+  if (!tienePermiso(PERMISO_VER_BUSCAR)) {
+      return;
+    }
+
   const fetchTrabajadores = async () => {
     try {
       const queryParams = new URLSearchParams();
@@ -24,7 +31,7 @@ useEffect(() => {
   };
 
   fetchTrabajadores();
-}, [oficio, zona]); 
+}, [oficio, zona, tienePermiso]); 
 
   return (
     <div className="container mt-4">

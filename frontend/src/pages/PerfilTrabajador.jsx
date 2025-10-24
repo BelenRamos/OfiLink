@@ -2,27 +2,29 @@ import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import FormularioContratacion from '../components/FormularioContratacion';
 import DenunciaModal from "../components/DenunciaModal";
+import { useAuth } from "../hooks/useAuth";
 
 const BACKEND_BASE_URL = 'http://localhost:3000';
 const DEFAULT_AVATAR = '/default-avatar.png';
 
 const PerfilTrabajador = () => {
-  const { id } = useParams();
+const { id } = useParams();
   const navigate = useNavigate();
-
-  const [usuario, setUsuario] = useState(null);
+  const { usuario: usuarioContext, tienePermiso, tieneRol } = useAuth(); 
+  const [usuario, setUsuario] = useState(null); 
   const [trabajador, setTrabajador] = useState(null);
   const [reseñas, setReseñas] = useState([]);
   const [loading, setLoading] = useState(true);
   const [mostrarDenuncia, setMostrarDenuncia] = useState(false);
 
   const [mostrandoFormulario, setMostrandoFormulario] = useState(false);
-  // Nuevo estado para mostrar mensajes de éxito/error (como la denuncia o contratación)
+  // Estado para mostrar mensajes de éxito/error (como la denuncia o contratación)
   const [mensajeFeedback, setMensajeFeedback] = useState({ tipo: '', mensaje: '' }); 
+
+  const PERMISO_DENUNCIAR = 'denunciar_trabajador';
 
   // Cargar usuario y datos del trabajador
   useEffect(() => {
-    // Limpiar mensaje después de un tiempo si existe
     if (mensajeFeedback.mensaje) {
       const timer = setTimeout(() => {
         setMensajeFeedback({ tipo: '', mensaje: '' });
@@ -32,10 +34,14 @@ const PerfilTrabajador = () => {
   }, [mensajeFeedback]);
 
   useEffect(() => {
-    const usuarioGuardado = localStorage.getItem('usuarioActual');
-    if (usuarioGuardado) {
-      setUsuario(JSON.parse(usuarioGuardado));
-    }
+        if (usuarioContext) {
+             setUsuario(usuarioContext);
+        } else {
+            const usuarioGuardado = localStorage.getItem('usuarioActual');
+            if (usuarioGuardado) {
+                setUsuario(JSON.parse(usuarioGuardado));
+            }
+        }
 
     const fetchTrabajador = async () => {
       try {
@@ -57,29 +63,22 @@ const PerfilTrabajador = () => {
       }
     };
 
-    // Al cargar los datos, asegúrate de limpiar cualquier mensaje anterior.
     setMensajeFeedback({ tipo: '', mensaje: '' });
     
     Promise.all([fetchTrabajador(), fetchReseñas()]).finally(() =>
       setLoading(false)
     );
-  }, [id]);
+  }, [id, usuarioContext]);
 
-  /**
-   * Manejador de éxito para la creación de una Contratación.
-   */
+
   const handleContratacionExitosa = () => {
     setMostrandoFormulario(false);
-    // Establecer mensaje de éxito
     setMensajeFeedback({ tipo: 'success', mensaje: 'Contratación creada con éxito.' });
   };
 
-  /**
-   * Manejador de éxito para la creación de una Denuncia.
-   */
+
   const handleDenunciaExitosa = () => {
     setMostrarDenuncia(false);
-    // Establecer mensaje de éxito
     setMensajeFeedback({ tipo: 'success', mensaje: 'Denuncia enviada con éxito. Revisaremos la situación.' });
   }
 
@@ -94,7 +93,8 @@ const PerfilTrabajador = () => {
       </div>
     );
 
-  // Mapeamos el tipo de feedback a la clase de Bootstrap
+  const puedeContratar = tieneRol('cliente');
+  const puedeDenunciar = tieneRol('cliente') && tienePermiso(PERMISO_DENUNCIAR);
   const alertClass = mensajeFeedback.tipo === 'success' ? 'alert-success' : 'alert-danger';
 
   return (
@@ -127,7 +127,6 @@ const PerfilTrabajador = () => {
           </h5>
         </div>
       </div>
-      {/* Se eliminan los h2 y h5 duplicados que estaban más abajo, manteniendo solo los del d-flex */}
       <p>{trabajador.descripcion}</p>
       <p>
         <strong>Teléfono:</strong>{' '}
@@ -136,7 +135,7 @@ const PerfilTrabajador = () => {
 
       <hr />
 
-      {usuario?.roles_keys?.includes('cliente') && trabajador.disponible && (
+    {puedeContratar && trabajador.disponible && (
         mostrandoFormulario ? (
           <FormularioContratacion
             idTrabajador={trabajador.id}
@@ -148,7 +147,7 @@ const PerfilTrabajador = () => {
             className="btn btn-primary mt-3"
             onClick={() => {
                 setMostrandoFormulario(true);
-                setMensajeFeedback({ tipo: '', mensaje: '' }); // Limpiar mensaje al abrir form
+                setMensajeFeedback({ tipo: '', mensaje: '' }); 
             }}
           >
             Contratar
@@ -156,12 +155,12 @@ const PerfilTrabajador = () => {
         )
       )}
 
-      {usuario?.roles_keys?.includes('cliente') && (
+      {puedeDenunciar && (
         <button
-          className="btn btn-danger mt-3 ms-2" // Añadido ms-2 para separación
+          className="btn btn-danger mt-3 ms-2"
           onClick={() => {
               setMostrarDenuncia(true);
-              setMensajeFeedback({ tipo: '', mensaje: '' }); // Limpiar mensaje al abrir modal
+              setMensajeFeedback({ tipo: '', mensaje: '' }); 
           }}>
           Denunciar trabajador
         </button>

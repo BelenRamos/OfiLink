@@ -1,13 +1,14 @@
 import React from "react";
 import { apiFetch } from "../utils/apiFetch";
 
-const CardSolicitudes = ({ solicitud, usuario, onActualizar }) => {
+const CardSolicitudes = ({ solicitud, usuario, onActualizar , permisos}) => {
     const { id, descripcion_trabajo, cliente, estado, oficios_requeridos } = solicitud;
+
+    const { puedeCancelar = false, puedeTomar = false } = permisos;
     
     const tomarSolicitud = async () => {
         try {
             await apiFetch(`/api/solicitudes/${id}/tomar`, { method: "PUT" });
-            
             onActualizar('success', '¡Solicitud tomada correctamente! ¡Contratación creada!'); 
             
         } catch (error) {
@@ -16,7 +17,6 @@ const CardSolicitudes = ({ solicitud, usuario, onActualizar }) => {
             const defaultMessage = "Ocurrió un error al intentar tomar la solicitud. Verifica tu sesión o el estado.";
             const errorMessage = error.response?.error || defaultMessage;
             
-            // ✅ Reemplazado por llamada a onActualizar con tipo 'error'
             onActualizar('error', errorMessage);
         }
     };
@@ -55,14 +55,14 @@ const CardSolicitudes = ({ solicitud, usuario, onActualizar }) => {
                     
                     <strong>Estado:</strong> <span className={`badge ${estado === 'Abierta' ? 'bg-success' : estado === 'Cancelada' ? 'bg-danger' : estado === 'Caducada' ? 'bg-secondary'  :'bg-warning text-dark'}`}>{estado}</span>
                 </p>
-                {/* Aca se aplicaran los permisos*/}
+
                 <div className="d-flex gap-2">
-                    {usuario?.roles_keys?.includes("cliente") && estado === "Abierta" && (
-                        <button className="btn btn-danger btn-sm" onClick={cancelarSolicitud}>
-                            Cancelar Solicitud
-                        </button>
-                    )}
-                    {usuario?.roles_keys?.includes("trabajador") && estado === "Abierta" && (
+                    {puedeCancelar && estado === "Abierta" && (
+                        <button className="btn btn-danger btn-sm" onClick={cancelarSolicitud}>
+                            Cancelar Solicitud
+                        </button>
+                    )}
+                    {puedeTomar && estado === "Abierta" && (
                         <button className="btn btn-success btn-sm" onClick={tomarSolicitud}>
                             Tomar Solicitud
                         </button>
