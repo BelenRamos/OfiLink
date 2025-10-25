@@ -2,12 +2,13 @@ import React, { useEffect, useState } from 'react';
 import { apiFetch } from '../../utils/apiFetch';
 import GenericConfirmModal from '../../components/GenericConfirmModal';
 import ConfirmBlockModal from '../../components/ConfirmBlockModal';
+import { useAuth } from '../../hooks/useAuth';
 
 // Definición de las acciones que requieren confirmación
 const ACTION_RESET = 'reset';
 const ACTION_DELETE = 'delete';
 const ACTION_BLOCK = 'block';
-const ACTION_REACTIVATE = 'reactivate';
+//const ACTION_REACTIVATE = 'reactivate';
 
 const BLOCK_DURATIONS = [
     { value: '2', label: '2 días' }, 
@@ -17,18 +18,27 @@ const BLOCK_DURATIONS = [
 ];
 
 const Usuarios = () => {
+    const { tienePermiso, isLoading } = useAuth(); 
+    
     const [usuarios, setUsuarios] = useState([]);
     const [filtroTipo, setFiltroTipo] = useState('');
     const [mensaje, setMensaje] = useState('');
 
     // ESTADOS PARA EL MODAL DE CONFIRMACIÓN
     const [showConfirmModal, setShowConfirmModal] = useState(false);
-    const [currentAction, setCurrentAction] = useState(null); // Qué acción ejecutar (reset, delete, block)
+    const [currentAction, setCurrentAction] = useState(null); 
     const [targetUsuario, setTargetUsuario] = useState(null); // A qué usuario afecta
 
+    const PERMISO_VER_VISTA = 'ver_usuarios';
+    const PERMISO_BLOQUEAR = 'bloquear_usuario';
+    const PERMISO_ELIMINAR = 'eliminar_usuario';
+    const PERMISO_RESET = 'resetear_pass';
+
     useEffect(() => {
-        fetchUsuarios();
-    }, []);
+        if (!isLoading && tienePermiso(PERMISO_VER_VISTA)) {
+            fetchUsuarios();
+        }
+    }, [isLoading, tienePermiso]);
 
     // Función auxiliar para el manejo detallado de errores (replicado de Oficios)
     const extractErrorMessage = (error, defaultMessage) => {
@@ -38,6 +48,11 @@ const Usuarios = () => {
     };
 
     const fetchUsuarios = async () => {
+        if (!tienePermiso(PERMISO_VER_VISTA)) {
+            setMensaje('No tiene permiso para ver la lista de usuarios.');
+            return;
+        }
+
         try {
             const response = await apiFetch('/api/personas'); 
             setUsuarios(response); 
@@ -62,8 +77,12 @@ const Usuarios = () => {
         setTargetUsuario(null);
     };
 
-    // --- ACCIÓN: Resetear Contraseña (sin cambios en la lógica interna) ---
+    //ACCIÓN: Resetear Contraseña
     const resetearContraseña = async (id) => {
+        if (!tienePermiso(PERMISO_RESET)) { 
+             setMensaje('Acción denegada: No tiene permiso para resetear contraseñas.');
+             return;
+        }
         try {
             const response = await apiFetch(`/api/personas/${id}/reset-password`, {
                 method: 'PUT',
@@ -78,8 +97,12 @@ const Usuarios = () => {
         }
     };
 
-    // --- ACCIÓN: Eliminar Cuenta (sin cambios en la lógica interna) ---
+    //Eliminar Cuenta 
     const eliminarCuenta = async (usuarioId) => {
+        if (!tienePermiso(PERMISO_ELIMINAR)) { 
+             setMensaje('Acción denegada: No tiene permiso para eliminar usuarios.');
+             return;
+        }
         try {
             await apiFetch(`/api/personas/${usuarioId}/eliminar`, {
                 method: 'PUT',
@@ -98,11 +121,15 @@ const Usuarios = () => {
         }
     };
 
-    // --- ACCIÓN: Toggle Bloqueo (sin cambios en la lógica interna) ---
-    // --- ACCIÓN: Toggle Bloqueo (sin cambios en la lógica interna) ---
+    //Toggle Bloqueo 
     const toggleBloqueo = async (usuario, motivo = null, duracionBloqueoDias = null) => {
         const nuevoEstado = usuario.estado_cuenta === 'Activo' ? 'Bloqueado' : 'Activo';
         const accion = nuevoEstado === 'Bloqueado' ? 'bloquear' : 'desbloquear';
+
+        if (accion === 'bloquear' && !tienePermiso(PERMISO_BLOQUEAR)) { // 5. Chequeo de permiso para bloquear
+             setMensaje('Acción denegada: No tiene permiso para bloquear usuarios.');
+             return;
+        }
 
         try {
             const body = { 
@@ -111,7 +138,7 @@ const Usuarios = () => {
             };
 
             if (nuevoEstado === 'Bloqueado' && duracionBloqueoDias) {
-                // 💡 Enviar la duración (número o 'indefinido')
+                // Enviar la duración (número o 'indefinido')
                 body.duracionBloqueoDias = duracionBloqueoDias; 
             }
 
@@ -120,7 +147,6 @@ const Usuarios = () => {
                 body: body
             });
 
-            // 💡 AÑADE LA LÓGICA DEL MENSAJE DE ÉXITO Y fetchUsuarios() AQUÍ:
             let mensajeExito;
             if (usuario.estado_cuenta === 'Eliminado') {
                  mensajeExito = `La cuenta de ${usuario.nombre} fue reactivada exitosamente.`;
@@ -132,7 +158,6 @@ const Usuarios = () => {
             }
             setMensaje(mensajeExito);
             fetchUsuarios(); 
-            // 💡 FIN DE LÓGICA AÑADIDA
             
         } catch (error) {
             const fullMessage = extractErrorMessage(error, `Error al ${accion} la cuenta.`);
@@ -140,9 +165,7 @@ const Usuarios = () => {
             setMensaje(fullMessage);
         }
     }
-    // --- MANEJO DE ACCIONES DEL MODAL (DISPATCHER) ---
-    // Esta función determina qué acción se ejecuta cuando el usuario confirma en el modal.
-    // 💡 MODIFICAR: ACEPTAR 'duracion' como segundo argumento
+
     const handleConfirmAction = async (motivo = null, duracion = null) => { 
         closeConfirmModal(); 
 
@@ -153,20 +176,18 @@ const Usuarios = () => {
                 await resetearContraseña(targetUsuario.id);
                 break;
             case ACTION_DELETE:
-                // La eliminación lógica es con PUT, no necesita body en el backend (pero podría si lo cambiamos)
+                // La eliminación lógica es con PUT, no necesita body en el backend
                 await eliminarCuenta(targetUsuario.id); 
                 break;
             case ACTION_BLOCK:
-                // 💡 MODIFICAR: Pasamos motivo Y finalDuracion a toggleBloqueo
+                //Pasamos motivo Y finalDuracion a toggleBloqueo
                 await toggleBloqueo(targetUsuario, motivo, duracion);
                 break;
-            // La reactivación ahora se maneja dentro de toggleBloqueo, pero si usas ACTION_REACTIVATE, se manejaría aquí.
             default:
                 break;
         }
     };
 
-    // --- Renderizado y Lógica del Modal (para el JSX) ---
     let modalProps = {};
     let useInputModal = false;
 
@@ -190,16 +211,14 @@ const Usuarios = () => {
                 break;
             case ACTION_BLOCK:
                 if (targetUsuario.estado_cuenta === 'Activo') {
-                    // ⚠️ Bloqueo: Usamos el modal con input
                     useInputModal = true; 
                     modalProps = {
-                        title: "Confirmar Sanción de Bloqueo", // 💡 Titulo mejorado
-                        message: `Defina la duración de la sanción para ${targetUsuario.nombre} e ingrese el motivo.`, // 💡 Mensaje adaptado
+                        title: "Confirmar Sanción de Bloqueo",
+                        message: `Defina la duración de la sanción para ${targetUsuario.nombre} e ingrese el motivo.`,
                         confirmText: "🚫 Bloquear Cuenta",
                         confirmButtonClass: "btn-danger",
                         inputLabel: 'Motivo del Bloqueo',
                         isInputRequired: true,
-                        // 💡 AÑADIR: Propiedad para las opciones de duración
                         durations: BLOCK_DURATIONS 
                     };} else {
                         // Desbloqueo/Reactivación
@@ -215,13 +234,18 @@ const Usuarios = () => {
                 break;
         }
     }
-    // ----------------------------------------------------
 
     const usuariosFiltrados = filtroTipo
         ? usuarios.filter(u => u.tipo === filtroTipo)
         : usuarios;
 
-    return (
+    if (isLoading) return <p className="mt-4">Cargando permisos...</p>;
+
+    if (!tienePermiso(PERMISO_VER_VISTA)) {
+        return <h2 className="mt-4">No tienes permiso para ver la gestión de usuarios.</h2>;
+    }
+
+   return (
         <div className="container mt-4">
             <h2>Gestión de Usuarios</h2>
             {mensaje && <div className="alert alert-info">{mensaje}</div>}
@@ -240,7 +264,6 @@ const Usuarios = () => {
             </div>
 
             <table className="table table-bordered table-striped">
-                {/* ... (Tabla head y body) ... */}
                 <thead className="table-light">
                     <tr>
                         <th>ID</th>
@@ -264,37 +287,41 @@ const Usuarios = () => {
                                 </span>
                             </td>
                             <td>
-                                <button
-                                    className="btn btn-sm btn-warning me-2"
-                                    onClick={() => openConfirmModal(ACTION_RESET, usuario)} // 💡 Usar el modal
-                                >
-                                    🔑 Resetear
-                                </button>
+                                {tienePermiso(PERMISO_RESET) && (
+                                    <button
+                                        className="btn btn-sm btn-warning me-2"
+                                        onClick={() => openConfirmModal(ACTION_RESET, usuario)} 
+                                    >
+                                        🔑 Resetear
+                                    </button>
+                                )}
 
-                                {/* GESTIÓN DE ESTADO (Activo/Bloqueado/Desbloqueo) */}
+                                {/* GESTIÓN DE ESTADO (Bloqueo/Desbloqueo) */}
                                 {usuario.estado_cuenta !== 'Eliminado' && (
                                     <button
                                         className={`btn btn-sm ${usuario.estado_cuenta === 'Activo' ? 'btn-danger' : 'btn-success'}`}
-                                        onClick={() => openConfirmModal(ACTION_BLOCK, usuario)} // 💡 Usar el modal
+                                        onClick={() => openConfirmModal(ACTION_BLOCK, usuario)} 
+                                        disabled={usuario.estado_cuenta === 'Activo' && !tienePermiso(PERMISO_BLOQUEAR)}
                                     >
                                         {usuario.estado_cuenta === 'Activo' ? '🚫 Bloquear' : '🔓 Desbloquear'}
                                     </button>
                                 )}
                                 
-                                {/*BOTÓN DE REACTIVAR, solo si el estado es Eliminado*/}
+                                {/* BOTÓN DE REACTIVAR, solo si el estado es Eliminado */}
                                 {usuario.estado_cuenta === 'Eliminado' && (
                                     <button
                                         className="btn btn-sm btn-success"
-                                        onClick={() => openConfirmModal(ACTION_BLOCK, { ...usuario, estado_cuenta: 'Bloqueado' })} // 💡 Simular desbloqueo para reactivar
+                                        onClick={() => openConfirmModal(ACTION_BLOCK, usuario)} 
+                                        disabled={!tienePermiso(PERMISO_BLOQUEAR)}
                                     >
                                         🔄 Reactivar
                                     </button>
                                 )}
 
-                                {usuario.estado_cuenta !== 'Eliminado' && (
+                                {usuario.estado_cuenta !== 'Eliminado' && tienePermiso(PERMISO_ELIMINAR) && (
                                     <button
                                         className="btn btn-sm btn-dark ms-2"
-                                        onClick={() => openConfirmModal(ACTION_DELETE, usuario)} // 💡 Usar el modal
+                                        onClick={() => openConfirmModal(ACTION_DELETE, usuario)} 
                                     >
                                         🗑️ Eliminar
                                     </button>
@@ -321,7 +348,6 @@ const Usuarios = () => {
                 <GenericConfirmModal
                     show={showConfirmModal}
                     onClose={closeConfirmModal}
-                    // 💡 MODIFICAR: Pasa (motivo=null, duracion=null)
                     onConfirm={() => handleConfirmAction(null, null)} 
                     {...modalProps}
                 />
