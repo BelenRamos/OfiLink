@@ -229,21 +229,6 @@ const asignarPermisosARol = async (req, res) => {
     }
 };
 
-// 5. Nuevo GET para traer TODOS los permisos (para el árbol de asignación)
-const getAllPermisos = async (req, res) => {
-    try {
-        const pool = await poolPromise;
-        const result = await pool.request().query(`
-            SELECT Id, Nombre, Descripcion, PadreId FROM Permiso ORDER BY PadreId, Nombre
-        `);
-        res.json(result.recordset);
-    } catch (error) {
-        console.error('Error al obtener todos los permisos:', error);
-        res.status(500).json({ error: 'Error al obtener los permisos' });
-    }
-};
-
-
 module.exports = {
     getRoles,
     createRol,
@@ -251,8 +236,7 @@ module.exports = {
     deleteRol,       // <-- Nuevo
     getRolesConPermisos,
     getPermisosPorRol, // <-- Nuevo
-    asignarPermisosARol, // <-- Nuevo
-    getAllPermisos // <-- Nuevo (probablemente en otro archivo de Permisos, pero necesario)
-};
+    asignarPermisosARol
+    };
 
 

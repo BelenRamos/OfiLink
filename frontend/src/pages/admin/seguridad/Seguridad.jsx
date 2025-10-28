@@ -34,9 +34,9 @@ const Seguridad = () => {
             <ul className="list-group">
               <li className="list-group-item"><Link to="sessionLogs">Historial de Sesiones</Link></li>
               <li className="list-group-item"><Link to="roles">Roles</Link></li>
-              <li className="list-group-item"><Link to="permisos">Permisos</Link></li>
+{/*               <li className="list-group-item"><Link to="permisos">Permisos</Link></li> */}
               <li className="list-group-item"><Link to="grupos">Grupos</Link></li>
-              <li className="list-group-item"><Link to="asignaciones">Asignaciones</Link></li>
+              {/* <li className="list-group-item"><Link to="asignaciones">Asignaciones</Link></li> */}
               <li className="list-group-item"><Link to="auditoria">Auditoría</Link></li>
             </ul>
           </div>

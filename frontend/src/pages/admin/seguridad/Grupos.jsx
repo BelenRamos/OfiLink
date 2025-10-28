@@ -1,83 +1,98 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import axios from 'axios';
+import { FaLockOpen } from 'react-icons/fa';
+import AsignarRolesModal from '../../../components/AsignarRolesModal'; // Componente nuevo
 
 const Grupos = () => {
-  const [grupos, setGrupos] = useState([]);
-  const [nuevoGrupo, setNuevoGrupo] = useState('');
-  const [error, setError] = useState('');
-  const [exito, setExito] = useState('');
+    const [grupos, setGrupos] = useState([]);
+    const [roles, setRoles] = useState([]); // Lista de todos los Roles disponibles
+    const [error, setError] = useState('');
+    const [exito, setExito] = useState('');
+    const [modalGrupo, setModalGrupo] = useState(null); // Grupo seleccionado
 
-  const fetchGrupos = async () => {
-    try {
-      const response = await axios.get('/api/grupos');
-      setGrupos(response.data);
-    } catch (error) {
-      console.error('Error al obtener grupos:', error);
-    }
-  };
+    // 1. Obtener la lista de Grupos
+    const fetchGrupos = useCallback(async () => {
+        try {
+            const response = await axios.get('/api/grupos');
+            setGrupos(response.data);
+        } catch (err) {
+            setError('Error al cargar grupos.');
+        }
+    }, []);
 
-  useEffect(() => {
-    fetchGrupos();
-  }, []);
+    // 2. Obtener la lista de todos los Roles disponibles
+    const fetchRoles = useCallback(async () => {
+        try {
+            const response = await axios.get('/api/roles'); // Reutilizamos el endpoint de Roles
+            setRoles(response.data);
+        } catch (err) {
+            console.error('Error al cargar la lista maestra de roles:', err);
+        }
+    }, []);
 
-  const handleAgregarGrupo = async (e) => {
-    e.preventDefault();
-    setError('');
-    setExito('');
+    useEffect(() => {
+        fetchGrupos();
+        fetchRoles();
+    }, [fetchGrupos, fetchRoles]);
 
-    if (!nuevoGrupo.trim()) {
-      setError('El nombre del grupo es obligatorio');
-      return;
-    }
+    const abrirModalRoles = (grupo) => {
+        setModalGrupo(grupo);
+        setError('');
+        setExito('');
+    };
 
-    try {
-      await axios.post('/api/grupos', { nombre: nuevoGrupo });
-      setExito('Grupo creado con éxito');
-      setNuevoGrupo('');
-      fetchGrupos();
-    } catch (err) {
-      console.error(err);
-      setError(err.response?.data?.error || 'Error al crear el grupo');
-    }
-  };
+    const cerrarModalRoles = () => {
+        setModalGrupo(null);
+    };
 
-  return (
-    <div>
-      <h5>Gestión de Grupos</h5>
+    return (
+        <div>
+            <h5>Gestión de Grupos y Roles</h5>
+            
+            {error && <div className="alert alert-danger">{error}</div>}
+            {exito && <div className="alert alert-success">{exito}</div>}
 
-      <form className="mb-3" onSubmit={handleAgregarGrupo}>
-        <div className="input-group">
-          <input
-            type="text"
-            className="form-control"
-            placeholder="Nuevo grupo..."
-            value={nuevoGrupo}
-            onChange={(e) => setNuevoGrupo(e.target.value)}
-          />
-          <button type="submit" className="btn btn-primary">Agregar</button>
+            {/* Aquí iría el formulario para crear un nuevo Grupo, si fuera necesario */}
+
+            <table className="table table-bordered table-striped mt-3">
+                <thead className='table-dark'>
+                    <tr>
+                        <th>ID</th>
+                        <th>Nombre del Grupo</th>
+                        <th style={{ width: '100px' }}>Acciones</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {grupos.map((grupo) => (
+                        <tr key={grupo.Id}>
+                            <td>{grupo.Id}</td>
+                            <td>{grupo.Nombre}</td>
+                            <td>
+                                <button 
+                                    onClick={() => abrirModalRoles(grupo)} 
+                                    className="btn btn-info btn-sm" 
+                                    title="Asignar Roles"
+                                >
+                                    <FaLockOpen /> Roles
+                                </button>
+                            </td>
+                        </tr>
+                    ))}
+                </tbody>
+            </table>
+
+            {/* Modal para Asignación de Roles */}
+            {modalGrupo && (
+                <AsignarRolesModal
+                    grupo={modalGrupo}
+                    todosLosRoles={roles}
+                    cerrarModal={cerrarModalRoles}
+                    setError={setError}
+                    setExito={setExito}
+                />
+            )}
         </div>
-        {error && <div className="text-danger mt-2">{error}</div>}
-        {exito && <div className="text-success mt-2">{exito}</div>}
-      </form>
-
-      <table className="table table-bordered">
-        <thead>
-          <tr>
-            <th>ID</th>
-            <th>Nombre del Grupo</th>
-          </tr>
-        </thead>
-        <tbody>
-          {grupos.map((grupo) => (
-            <tr key={grupo.Id}>
-              <td>{grupo.Id}</td>
-              <td>{grupo.Nombre}</td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    </div>
-  );
+    );
 };
 
 export default Grupos;
