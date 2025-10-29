@@ -41,7 +41,7 @@ const Dashboard = () => {
                 .then((res) => {
                     const resumen = res.data;
                     const datos = [
-                        { tipo: "Trabajadores", cantidad: resumen.totalTrabajadores },
+                        { tipo: "Trabajadores", cantidad: resumen.totalTrabajadores }, //Cambiar
                         { tipo: "Clientes", cantidad: resumen.totalClientes },
                     ];
                     setUsuariosData(datos);

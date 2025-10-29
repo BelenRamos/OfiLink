@@ -32,7 +32,6 @@ const upload = multer({
   limits: { fileSize: 2 * 1024 * 1024 } // 2MB
 });
 
-
 const uploadMiddleware = (req, res, next) => {
     upload.single('foto')(req, res, (err) => {
         if (err instanceof multer.MulterError) {
@@ -239,81 +238,91 @@ const subirFoto = async (req, res) => {
 };
 
 const getResumenPersonas = async (req, res) => {
-  try {
-    const pool = await poolPromise;
+    try {
+        const pool = await poolPromise;
 
-    const result = await pool.request().query(`
-      SELECT
-        COUNT(*) AS totalUsuarios,
-        SUM(CASE WHEN tipo_usuario = 'trabajador' THEN 1 ELSE 0 END) AS totalTrabajadores,
-        SUM(CASE WHEN tipo_usuario = 'cliente' THEN 1 ELSE 0 END) AS totalClientes,
-        (SELECT COUNT(*) FROM Contratacion) AS totalContrataciones,
-        (SELECT COUNT(*) FROM Oficio) AS totalOficios
-      FROM Persona
-      WHERE estado_cuenta IN ('Activo', 'Bloqueado')
-    `);
+        const result = await pool.request().query(`
+            SELECT
+                COUNT(*) AS totalUsuarios,
+                -- Usamos GrupoId: 4 para 'trabajador'
+                SUM(CASE WHEN GrupoId = 4 THEN 1 ELSE 0 END) AS totalTrabajadores, 
+                -- Usamos GrupoId: 3 para 'cliente'
+                SUM(CASE WHEN GrupoId = 3 THEN 1 ELSE 0 END) AS totalClientes, 
+                (SELECT COUNT(*) FROM Contratacion) AS totalContrataciones,
+                (SELECT COUNT(*) FROM Oficio) AS totalOficios
+            FROM Persona
+            WHERE estado_cuenta IN ('Activo', 'Bloqueado')
+        `);
 
-    res.json(result.recordset[0]);
-  } catch (error) {
-    console.error('Error al obtener resumen de personas:', error);
-    res.status(500).json({ error: 'Error al obtener el resumen de personas' });
-  }
+        res.json(result.recordset[0]);
+    } catch (error) {
+        console.error('Error al obtener resumen de personas:', error);
+        res.status(500).json({ error: 'Error al obtener el resumen de personas' });
+    }
 };
 
 const getPersonas = async (req, res) => {
-  try {
-    const pool = await poolPromise;
-    const result = await pool.request().query(`
-      SELECT 
-        id,
-        nombre,
-        mail,
-        estado_cuenta,
-        tipo_usuario AS tipo
-      FROM Persona
-      ORDER BY nombre
-    `);
+    try {
+        const pool = await poolPromise;
+        const result = await pool.request().query(`
+            SELECT 
+                p.id,
+                p.nombre,
+                p.mail,
+                p.estado_cuenta,
+                -- Reemplazamos tipo_usuario por la lógica de GrupoId
+                CASE p.GrupoId
+                    WHEN 1 THEN 'administrador'
+                    WHEN 2 THEN 'supervisor'
+                    WHEN 3 THEN 'cliente'
+                    WHEN 4 THEN 'trabajador'
+                    ELSE 'otro'
+                END AS tipo 
+            FROM Persona p
+            ORDER BY nombre
+        `);
 
-    res.json(result.recordset);
-  } catch (error) {
-    console.error('Error al obtener personas:', error);
-    res.status(500).json({ error: 'Error al obtener personas' });
-  }
+        res.json(result.recordset);
+    } catch (error) {
+        console.error('Error al obtener personas:', error);
+        res.status(500).json({ error: 'Error al obtener personas' });
+    }
 };
 
 //Para recuperar la foto
 const getPersonaPorId = async (req, res) => {
-    const id = parseInt(req.params.id);
-    try {
-        const pool = await poolPromise;
-        const result = await pool.request()
-          .input('id', sql.Int, id)
-          .query(`
-            SELECT 
-              p.id,
-              p.nombre,
-              p.mail,
-              p.contacto,
-              p.foto AS foto_url,  
-              p.fecha_nacimiento,
-              CASE p.GrupoId
-                WHEN 3 THEN 'cliente'
-                WHEN 4 THEN 'trabajador'
-                ELSE 'desconocido'
-              END AS tipo
-            FROM Persona p
-            WHERE p.id = @id
-        `);
+    const id = parseInt(req.params.id);
+    try {
+        const pool = await poolPromise;
+        const result = await pool.request()
+            .input('id', sql.Int, id)
+            .query(`
+                SELECT 
+                  p.id,
+                  p.nombre,
+                  p.mail,
+                  p.contacto,
+                  p.foto AS foto_url,  
+                  p.fecha_nacimiento,
+                  -- Mantenemos y confirmamos la traducción basada en GrupoId
+                  CASE p.GrupoId
+                    WHEN 3 THEN 'cliente'
+                    WHEN 4 THEN 'trabajador'
+                    ELSE 'desconocido'
+                  END AS tipo
+                FROM Persona p
+                WHERE p.id = @id
+            `);
 
-        if (result.recordset.length === 0) {
-            return res.status(404).json({ mensaje: 'Persona no encontrada' });
-        }
+        if (result.recordset.length === 0) {
+            return res.status(404).json({ mensaje: 'Persona no encontrada' });
+        }
 
-        res.json(result.recordset[0]);
-    } catch (error) {
-        console.error('Error al obtener persona por ID:', error);
-        res.status(500).json({ error: 'Error al obtener persona' });
-    }
+        res.json(result.recordset[0]);
+    } catch (error) {
+        console.error('Error al obtener persona por ID:', error);
+        res.status(500).json({ error: 'Error al obtener persona' });
+    }
 };
 
 const getPersonasReporte = async (req, res) => {
@@ -477,7 +486,6 @@ const registrarPersona = async (req, res) => {
         request.input('mail', sql.VarChar, mail);
         request.input('foto', sql.VarChar, foto || null);
         request.input('fecha_nacimiento', sql.Date, fecha_nacimiento);
-        request.input('tipo_usuario', sql.VarChar, tipo_usuario);
         request.input('grupoId', sql.Int, grupoId);
         request.input('descripcion', sql.VarChar, descripcion || null);
         request.input('disponibilidad_horaria', sql.VarChar, disponibilidad_horaria || null);
@@ -860,6 +868,7 @@ const eliminarCuentaLogica = async (req, res) => {
             estadoAnterior,
             'Eliminado'
         );
+
         //Por las dudasss
 /*         await pool.request()
             .input('id', sql.Int, targetId)

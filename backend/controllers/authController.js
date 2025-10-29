@@ -5,6 +5,37 @@ const { registrarAuditoria } = require('./personasController');
 require('dotenv').config(); // leer .env
 const SECRET_KEY = process.env.SECRET_KEY;
 
+const ROLE_PRIORITIES = {
+    'administrador': { priority: 1, route: '/admin' },
+    'supervisor':    { priority: 2, route: '/admin' }, // Tu ruta actual de supervisor
+    'cliente':       { priority: 5, route: '/home' },
+    'visitor':       { priority: 6, route: '/home' },
+    'default':       { priority: 99, route: '/home' } // Fallback
+};
+
+const determinarRutaInicio = (rolesKeys) => {
+    let mejorPrioridad = ROLE_PRIORITIES.default.priority;
+    let mejorRuta = ROLE_PRIORITIES.default.route;
+    
+    // Si no hay roles, usa el default
+    if (!rolesKeys || rolesKeys.length === 0) {
+        return mejorRuta;
+    }
+
+    // Iterar sobre los roles del usuario y encontrar la mejor prioridad
+    for (const roleKey of rolesKeys) {
+        const roleData = ROLE_PRIORITIES[roleKey];
+        
+        // Si el rol existe en nuestro mapa y tiene una mejor prioridad
+        if (roleData && roleData.priority < mejorPrioridad) {
+            mejorPrioridad = roleData.priority;
+            mejorRuta = roleData.route;
+        }
+    }
+    
+    return mejorRuta;
+};
+
 // Función auxiliar para registrar en SessionLog
 const registrarSessionLog = async (personaId, accion) => {
   try {
@@ -33,7 +64,7 @@ const login = async (req, res) => {
     const resultAuth = await pool.request()
       .input('usuario', sql.VarChar, usuario)
       .query(`
-        SELECT p.id, p.nombre, p.mail, p.contraseña, p.tipo_usuario, p.GrupoId, p.estado_cuenta
+        SELECT p.id, p.nombre, p.mail, p.contraseña, p.GrupoId, p.estado_cuenta
         FROM Persona p
         WHERE p.mail = @usuario;
       `);
@@ -97,24 +128,34 @@ const login = async (req, res) => {
 
     // Juntar los resultados de ambas consultas
     const usuarioCompleto = { ...usuarioAuth, ...resultData.recordset[0] };
+    // Preparar campos del usuario
+    const rolesKeysArray = usuarioCompleto.roles_keys ? usuarioCompleto.roles_keys.split(',') : [];
     
     // Preparar campos del usuario
     usuarioCompleto.roles = usuarioCompleto.roles ? usuarioCompleto.roles.split(',') : [];
-    usuarioCompleto.roles_keys = usuarioCompleto.roles_keys ? usuarioCompleto.roles_keys.split(',') : [];
+    //usuarioCompleto.roles_keys = usuarioCompleto.roles_keys ? usuarioCompleto.roles_keys.split(',') : [];
+    usuarioCompleto.roles_keys = rolesKeysArray; // Usar la nueva variable
     usuarioCompleto.permisos_keys = usuarioCompleto.permisos_keys ? usuarioCompleto.permisos_keys.split(',') : [];
 
+    // ----------------------------------------------------
+    // PASO 3: DETERMINAR RUTA DE INICIO ESCALABLE
+    // ----------------------------------------------------
+    const rutaInicio = determinarRutaInicio(rolesKeysArray);
+    usuarioCompleto.ruta_inicio = rutaInicio; // Añadir al objeto que va al frontend
+      
     // Generar JWT (usando usuarioCompleto)
     const token = jwt.sign(
-      {
-        id: usuarioCompleto.id,
-        nombre: usuarioCompleto.nombre,
-        mail: usuarioCompleto.mail,
-        GrupoId: usuarioCompleto.GrupoId,
-        roles_keys: usuarioCompleto.roles_keys,
-        permisos_keys: usuarioCompleto.permisos_keys,
-      },
-      SECRET_KEY,
-      { expiresIn: '2h' }
+        {
+            id: usuarioCompleto.id,
+            nombre: usuarioCompleto.nombre,
+            mail: usuarioCompleto.mail,
+            GrupoId: usuarioCompleto.GrupoId,
+            roles_keys: usuarioCompleto.roles_keys,
+            permisos_keys: usuarioCompleto.permisos_keys,
+            ruta_inicio: rutaInicio, // Incluir en el JWT para futuras validaciones
+        },
+        SECRET_KEY,
+        { expiresIn: '2h' }
     );
 
     // Limpiar hash
@@ -125,10 +166,10 @@ const login = async (req, res) => {
 
     res.json({ usuario: usuarioCompleto, token });
 
-  } catch (err) {
-    console.error('Error al iniciar sesión:', err);
-    res.status(500).json({ error: 'Error del servidor' });
-  }
+    } catch (err) {
+        console.error('Error al iniciar sesión:', err);
+        res.status(500).json({ error: 'Error del servidor' });
+    }
 };
 
 //Esta es de la ultima version

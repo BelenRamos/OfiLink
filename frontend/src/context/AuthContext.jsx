@@ -92,7 +92,7 @@ export const AuthProvider = ({ children }) => {
 
     const tienePermiso = (permiso) => checkPermiso(usuario, permiso);
 
-    // AÑADE ESTE CONSOLE.LOG AQUÍ:
+    //CONSOLE.LOG PARA PERMISOS --> SE PUEDE BORRAR
     useEffect(() => {
         if (usuario) {
             console.log("Contexto: Usuario cargado. Permisos:", usuario.permisos_keys);

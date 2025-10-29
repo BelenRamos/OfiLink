@@ -38,7 +38,7 @@ const FormularioRegistro = () => {
     if (m < 0 || (m === 0 && hoy.getDate() < nacimiento.getDate())) edad--;
     if (edad < 18) return "El usuario debe ser mayor de 18 años.";
 
-    if (!form.contraseña || form.contraseña.length < 6) return "La contraseña debe tener al menos 6 caracteres.";
+    if (!form.contraseña || form.contraseña.length < 8) return "La contraseña debe tener al menos 8 caracteres.";
 
     return null;
   };

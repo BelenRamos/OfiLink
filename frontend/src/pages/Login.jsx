@@ -11,14 +11,10 @@ const Login = () => {
     const navigate = useNavigate();
 
     useEffect(() => {
-        // Chequeamos si el contexto ya tiene un usuario cargado
-        if (usuario) {
-            // El usuario ya está logueado, lo redirigimos a donde debería ir
-            if (usuario.roles_keys.includes('administrador') || usuario.roles_keys.includes('supervisor')) {
-                navigate('/admin', { replace: true });
-            } else {
-                navigate('/home', { replace: true });
-            }
+        if (usuario && usuario.ruta_inicio) { // <--- Verificar ruta_inicio
+            // Redirigimos a la ruta determinada por el backend (la más prioritaria)
+            navigate(usuario.ruta_inicio, { replace: true });
+
         }
     }, [usuario, navigate]); 
 
@@ -60,6 +56,7 @@ const Login = () => {
                 grupo: usuario.grupo,
                 roles: usuario.roles || [],
                 roles_keys: usuario.roles_keys || [], 
+                ruta_inicio: usuario.ruta_inicio,
                 token
             };
             

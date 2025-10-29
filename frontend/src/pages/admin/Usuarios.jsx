@@ -260,6 +260,8 @@ const Usuarios = () => {
                     <option value="">Todos</option>
                     <option value="cliente">Clientes</option>
                     <option value="trabajador">Trabajadores</option>
+                    <option value="administrador">Administardores</option>
+                    <option value="supervisor">Supervisores</option>
                 </select>
             </div>
 
