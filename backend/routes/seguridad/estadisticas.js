@@ -1,10 +1,17 @@
+const { autenticarJWT, requirePermission } = require('../../middleware/auth');
 const express = require('express');
 const router = express.Router();
 const {
-  getResumenSolicitudesYContrataciones
+  getResumenSolicitudesYContrataciones
 } = require('../../controllers/estadisticasController');
 
-// Ruta para obtener el resumen general (solicitudes y contrataciones)
-router.get('/solicitudes-contrataciones', getResumenSolicitudesYContrataciones);
+const PERMISO_REQUERIDO = 'ver_dashboard';
+
+router.get(
+    '/solicitudes-contrataciones', 
+    autenticarJWT, 
+    requirePermission(PERMISO_REQUERIDO), 
+    getResumenSolicitudesYContrataciones
+);
 
 module.exports = router;

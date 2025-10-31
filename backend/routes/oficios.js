@@ -12,18 +12,19 @@ const {
 
 // GET /api/oficios
 // Obtiene todos los oficios
-router.get('/', getOficios);
+router.get('/', getOficios); //Permiso: ver_oficios
 
 // POST /api/oficios
 // Agrega un nuevo oficio
-router.post('/', createOficio);
+router.post('/', createOficio); //Permiso: crear_oficio
 
 // PUT /api/oficios/:id
 // Edita un oficio existente (se pasa el ID como parámetro de ruta)
-router.put('/:id', updateOficio);
+router.put('/:id', updateOficio); // Permiso: editar_oficio
 
 // DELETE /api/oficios/:id
 // Elimina un oficio (se pasa el ID como parámetro de ruta)
-router.delete('/:id', deleteOficio);
+router.delete('/:id', deleteOficio); //Permiso: eliminar_oficio
 
 module.exports = router;
+

@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { useAuth } from "../../../hooks/useAuth";
+import { apiFetch } from "../../../utils/apiFetch";
 
 const SessionLogs = () => {
   const { tienePermiso, isLoading } = useAuth();
@@ -24,17 +25,12 @@ const SessionLogs = () => {
       if (fechaInicio) params.append("fechaInicio", fechaInicio);
       if (fechaFin) params.append("fechaFin", fechaFin);
 
-      const res = await fetch(`/api/auth/sessionLogs?${params.toString()}`); // Usar fetch directamente o apiFetch si estuviera disponible/configurado para esta ruta
-      
-      if (!res.ok) {
-        throw new Error(`HTTP error! status: ${res.status}`);
-      }
-
-      const data = await res.json();
+      const data = await apiFetch(`/api/auth/sessionLogs?${params.toString()}`);
       setLogs(data);
+
     } catch (err) {
-      console.error("Error cargando logs:", err);
-      setError("Error al cargar los logs de sesión.");
+      const errorMessage = err.message || "Error al cargar los logs de sesión.";
+      setError(errorMessage);
     } finally {
       setLoadingData(false);
     }

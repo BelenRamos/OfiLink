@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
-import axios from "axios";
+//import axios from "axios";
+import { apiFetch } from "../utils/apiFetch";
 
 const FormularioTrabajador = () => {
   const { state } = useLocation();
@@ -28,11 +29,12 @@ const FormularioTrabajador = () => {
     const fetchData = async () => {
       try {
         const [resZonas, resOficios] = await Promise.all([
-          axios.get("/api/zonas"),
-          axios.get("/api/oficios"),
+          apiFetch("/api/zonas"), 
+          apiFetch("/api/oficios"), 
         ]);
-        setZonas(resZonas.data);
-        setOficios(resOficios.data);
+
+        setZonas(resZonas); 
+        setOficios(resOficios);
       } catch (err) {
         console.error("Error cargando datos:", err);
         setError("Error al cargar zonas y oficios.");
@@ -70,16 +72,19 @@ const FormularioTrabajador = () => {
     }
 
     try {
-      await axios.post("/api/personas/registrar", form);
+      await apiFetch("/api/personas/registrar", {
+        method: 'POST',
+        body: form, 
+      });
 
       setOk("Trabajador registrado correctamente.");
       navigate("/login");
     } catch (err) {
-      const apiErr =
-        err?.response?.data?.error || "Error al registrar el trabajador.";
+      const apiErr = err.message || "Error al registrar el trabajador.";
       setError(apiErr);
     }
   };
+
 
   return (
     <div className="container mt-4">

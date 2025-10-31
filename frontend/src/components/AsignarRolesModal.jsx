@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
+//import axios from 'axios';
+import { apiFetch } from '../utils/apiFetch';
 import { FaTimes } from 'react-icons/fa';
 
 const AsignarRolesModal = ({ grupo, todosLosRoles, cerrarModal, setError, setExito }) => {
@@ -10,8 +11,7 @@ const AsignarRolesModal = ({ grupo, todosLosRoles, cerrarModal, setError, setExi
     useEffect(() => {
         const fetchRolesPorGrupo = async () => {
             try {
-                // Llama al nuevo endpoint: GET /api/grupos/:id/roles
-                const { data } = await axios.get(`/api/grupos/${grupo.Id}/roles`);
+                const data = await apiFetch(`/api/grupos/${grupo.Id}/roles`);
                 setRolesAsignados(data);
             } catch (error) {
                 console.error('Error al obtener roles por grupo:', error);
@@ -25,10 +25,8 @@ const AsignarRolesModal = ({ grupo, todosLosRoles, cerrarModal, setError, setExi
 
     const handleToggleRol = (rolId, estaAsignado) => {
         if (estaAsignado) {
-            // Desasignar: remover de la lista
             setRolesAsignados(prev => prev.filter(r => r.RolId !== rolId));
         } else {
-            // Asignar: agregar a la lista
             setRolesAsignados(prev => [...prev, { GrupoId: grupo.Id, RolId: rolId }]);
         }
     };
@@ -39,11 +37,11 @@ const AsignarRolesModal = ({ grupo, todosLosRoles, cerrarModal, setError, setExi
         setLoading(true);
 
         try {
-            // Envía la lista completa de IDs de roles asignados para sobrescribir
-            const rolesIds = rolesAsignados.map(r => r.RolId);
-            // Llama al nuevo endpoint: POST /api/grupos/:id/roles
-            await axios.post(`/api/grupos/${grupo.Id}/roles`, { rolesIds });
-            
+        const rolesIds = rolesAsignados.map(r => r.RolId); 
+        await apiFetch(`/api/grupos/${grupo.Id}/roles`, { 
+            method: 'POST', 
+            body: { rolesIds } 
+        });           
             setExito(`Roles del grupo '${grupo.Nombre}' guardados con éxito.`);
             cerrarModal();
         } catch (err) {

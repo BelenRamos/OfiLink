@@ -1,4 +1,4 @@
-const { poolPromise, sql } = require('../db');
+/* const { poolPromise, sql } = require('../db');
 
 const getAsignaciones = async (req, res) => {
   try {
@@ -48,3 +48,4 @@ const createAsignacion = async (req, res) => {
 };
 
 module.exports = { getAsignaciones, createAsignacion };
+ */

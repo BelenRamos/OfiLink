@@ -1,12 +1,12 @@
 import React, { useEffect, useState, useCallback } from 'react';
-import axios from 'axios';
+//import axios from 'axios';
+import { apiFetch } from '../../../utils/apiFetch';
 import TablaRoles from '../../../components/TablaRoles'; 
 import FormularioAgregarRol from '../../../components/FormularioAgregarRol';
 import AsignarPermisosModal from '../../../components/AsignarPermisosModal';
 
 // Componente Principal
 const Roles = () => {
-    // --- ESTADOS ---
     const [roles, setRoles] = useState([]);
     const [todosLosPermisos, setTodosLosPermisos] = useState([]); 
     const [error, setError] = useState('');
@@ -14,23 +14,21 @@ const Roles = () => {
     const [expanded, setExpanded] = useState({}); // control de expandir/contraer general y del modal
     const [modalRol, setModalRol] = useState(null); // Rol seleccionado para el modal
 
-    // --- FETCHING DE DATOS ---
-
     const fetchRoles = useCallback(async () => {
         try {
-            const response = await axios.get('/api/roles');
-            setRoles(response.data);
+            const responseData = await apiFetch('/api/roles');
+            setRoles(responseData);
             setError('');
         } catch (error) {
-            setError('Error al obtener roles.');
+            setError('Error al obtener roles. Verifique permisos.');
             setRoles([]);
         }
     }, []);
 
     const fetchTodosLosPermisos = useCallback(async () => {
         try {
-            const response = await axios.get('/api/permisos');
-            setTodosLosPermisos(response.data);
+            const responseData = await apiFetch('/api/permisos');
+            setTodosLosPermisos(responseData);
         } catch (error) {
             console.error('Error al obtener todos los permisos:', error);
         }
@@ -41,15 +39,12 @@ const Roles = () => {
         fetchTodosLosPermisos();
     }, [fetchRoles, fetchTodosLosPermisos]);
     
-    // --- MANEJO DE EXPANSION (GLOBAL) ---
     const toggleExpand = (id) => {
         setExpanded((prev) => ({ ...prev, [id]: !prev[id] }));
     };
 
-    // --- MANEJO DE MODAL ---
     const abrirModalPermisos = (rol) => {
         setModalRol(rol);
-        // Resetea el estado de éxito/error al abrir un modal de acción
         setError('');
         setExito(''); 
     };
@@ -58,16 +53,12 @@ const Roles = () => {
         setModalRol(null);
     };
 
-    // --- RENDERIZADO ---
     return (
         <div>
             <h5>Gestión de Roles</h5>
-            
-            {/* Mensajes de feedback */}
             {error && <div className="alert alert-danger">{error}</div>}
             {exito && <div className="alert alert-success">{exito}</div>}
 
-            {/* Formulario de Adición */}
             <FormularioAgregarRol 
                 fetchRoles={fetchRoles} 
                 setError={setError} 
@@ -91,7 +82,6 @@ const Roles = () => {
                     cerrarModal={cerrarModalPermisos}
                     setError={setError}
                     setExito={setExito}
-                    // Pasamos expanded y toggleExpand para controlar el árbol del modal
                     expanded={expanded} 
                     toggleExpand={toggleExpand}
                 />

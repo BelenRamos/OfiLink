@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
-import axios from 'axios';
+// import axios from 'axios'; 
+import { apiFetch } from "../../utils/apiFetch"; 
 import { imprimirHTML } from "../../utils/imprimirHTML";
 import { useAuth } from "../../hooks/useAuth";
 
@@ -22,17 +23,22 @@ const Reporte = () => {
       return;
     }
 
-    const fetchDatos = async () => {
+  const fetchDatos = async () => {
       setLoading(true); 
-      setError(''); // Limpiar errores anteriores antes de la nueva carga
+      setError('');
       try {
-        const { data } = await axios.get('/api/personas/reporte', {
-          params: { rol: rolFiltro } 
-        });
-        setDatos(data);
+        let url = '/api/personas/reporte';
+        if (rolFiltro && rolFiltro !== 'todos') {
+             url += `?rol=${rolFiltro}`; 
+        }
+
+        const data = await apiFetch(url); 
+        setDatos(data); 
+
       } catch (err) {
         console.error('Error al obtener reporte:', err);
-        const errorMessage = err.response?.data?.error || 'No se pudo cargar el reporte.';
+        
+        const errorMessage = err.message || 'No se pudo cargar el reporte.';
         setError(errorMessage);
         setDatos([]);
       } finally {

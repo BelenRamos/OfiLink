@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import axios from 'axios';
+//import axios from 'axios';
+import { apiFetch } from '../utils/apiFetch';
 
 const FormularioAgregarRol = ({ fetchRoles, setError, setExito }) => {
     const [nuevoRol, setNuevoRol] = useState('');
@@ -15,12 +16,16 @@ const FormularioAgregarRol = ({ fetchRoles, setError, setExito }) => {
         }
 
         try {
-            await axios.post('/api/roles', { nombre: nuevoRol });
+            await apiFetch('/api/roles', { 
+                method: 'POST',
+                body: { nombre: nuevoRol }
+            });
+            
             setExito('Rol creado con éxito');
             setNuevoRol('');
             fetchRoles(); // Refrescar la lista de roles en el componente padre
         } catch (err) {
-            setError(err.response?.data?.error || 'Error al crear el rol');
+            setError(err.response?.error || 'Error al crear el rol');
         }
     };
 

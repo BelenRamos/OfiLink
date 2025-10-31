@@ -18,6 +18,41 @@ const autenticarJWT = (req, res, next) => {
   }
 };
 
+// --------------------------------------------------------
+// ✅ NUEVO MIDDLEWARE DE PERMISOS
+// --------------------------------------------------------
+const requirePermission = (...permisosRequeridos) => {
+    // Retorna la función middleware de Express
+    return (req, res, next) => {
+        // 1. Verificar autenticación (aunque 'autenticarJWT' debería preceder a esto)
+        if (!req.usuario) {
+            return res.status(401).json({ error: 'No autorizado. Autenticación requerida.' });
+        }
+
+        const permisosUsuario = req.usuario.permisos_keys || [];
+
+        // 2. Verificar si el usuario tiene TODOS los permisos requeridos
+        // Opcionalmente, puedes cambiar a .some() si quieres que baste con TENER AL MENOS UNO.
+        // Pero típicamente, requirePermission requiere que se cumplan TODOS.
+        const tieneTodosLosPermisos = permisosRequeridos.every(permiso => 
+            permisosUsuario.includes(permiso)
+        );
+
+        if (tieneTodosLosPermisos) {
+            next();
+        } else {
+            // Loguear (opcional) o devolver error específico
+            console.warn(`Intento de acceso denegado a usuario ID ${req.usuario.id || 'N/A'}. Permisos faltantes: ${permisosRequeridos.filter(p => !permisosUsuario.includes(p)).join(', ')}`);
+            return res.status(403).json({ 
+                error: 'Acceso denegado. Permisos insuficientes.',
+                detalles: `Se requieren los permisos: [${permisosRequeridos.join(', ')}]`
+            });
+        }
+    };
+};
+// --------------------------------------------------------
+
+
 const isAdmin = (req, res, next) => {
     // Implementación: Verifica si req.usuario.GrupoId es 1 (o el ID de administrador)
     if (req.usuario && req.usuario.GrupoId === 1) { 
@@ -27,7 +62,9 @@ const isAdmin = (req, res, next) => {
     }
 };
 
+
 module.exports = { 
     autenticarJWT, 
-    isAdmin
+    isAdmin,
+    requirePermission // ✅ Exportamos el nuevo middleware
 };

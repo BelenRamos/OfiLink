@@ -1,7 +1,8 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import axios from 'axios';
+//import axios from 'axios';
+import { apiFetch } from '../../../utils/apiFetch';
 import { FaLockOpen } from 'react-icons/fa';
-import AsignarRolesModal from '../../../components/AsignarRolesModal'; // Componente nuevo
+import AsignarRolesModal from '../../../components/AsignarRolesModal'; 
 
 const Grupos = () => {
     const [grupos, setGrupos] = useState([]);
@@ -10,21 +11,19 @@ const Grupos = () => {
     const [exito, setExito] = useState('');
     const [modalGrupo, setModalGrupo] = useState(null); // Grupo seleccionado
 
-    // 1. Obtener la lista de Grupos
     const fetchGrupos = useCallback(async () => {
         try {
-            const response = await axios.get('/api/grupos');
-            setGrupos(response.data);
+            const responseData = await apiFetch('/api/grupos');
+            setGrupos(responseData);
         } catch (err) {
             setError('Error al cargar grupos.');
         }
     }, []);
 
-    // 2. Obtener la lista de todos los Roles disponibles
     const fetchRoles = useCallback(async () => {
         try {
-            const response = await axios.get('/api/roles'); // Reutilizamos el endpoint de Roles
-            setRoles(response.data);
+            const responseData = await apiFetch('/api/roles'); 
+            setRoles(responseData);
         } catch (err) {
             console.error('Error al cargar la lista maestra de roles:', err);
         }

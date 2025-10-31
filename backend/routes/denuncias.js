@@ -7,8 +7,8 @@ const {
 } = require('../controllers/denunciasController');
 
 
-router.post('/', verificarToken, crearDenuncia);
+router.post('/', verificarToken, crearDenuncia); //Permiso: denunciar_trabajador
 
-router.get('/', obtenerDenuncias);
+router.get('/', obtenerDenuncias); //Permiso : ver_denuncias
 
 module.exports = router;

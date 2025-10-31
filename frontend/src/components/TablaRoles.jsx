@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import axios from 'axios';
+//import axios from 'axios';
+import { apiFetch } from '../utils/apiFetch';
 import { FaEdit, FaTrashAlt, FaLockOpen } from 'react-icons/fa';
 
 const TablaRoles = ({ roles, fetchRoles, setError, setExito, abrirModalPermisos }) => {
@@ -22,12 +23,16 @@ const TablaRoles = ({ roles, fetchRoles, setError, setExito, abrirModalPermisos 
         }
 
         try {
-            await axios.put(`/api/roles/${rolId}`, { nombre: nombreEditado }); 
+            await apiFetch(`/api/roles/${rolId}`, { 
+                method: 'PUT',
+                body: { nombre: nombreEditado } 
+            }); 
+            
             setExito('Rol actualizado con éxito');
             setEditandoRol(null);
             fetchRoles(); // Refrescar la lista
         } catch (err) {
-            setError(err.response?.data?.error || 'Error al actualizar el rol');
+            setError(err.response?.error || 'Error al actualizar el rol');
         }
     };
 
@@ -37,11 +42,14 @@ const TablaRoles = ({ roles, fetchRoles, setError, setExito, abrirModalPermisos 
         setExito('');
 
         try {
-            await axios.delete(`/api/roles/${rolId}`); 
+            await apiFetch(`/api/roles/${rolId}`, { 
+                method: 'DELETE' 
+            }); 
+            
             setExito('Rol eliminado con éxito');
             fetchRoles(); // Refrescar la lista
         } catch (err) {
-            setError(err.response?.data?.error || 'Error al eliminar el rol');
+            setError(err.response?.error || 'Error al eliminar el rol');
         }
     };
 

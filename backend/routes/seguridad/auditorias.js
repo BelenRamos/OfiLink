@@ -1,8 +1,8 @@
 const express = require('express');
 const router = express.Router();
 const { getHistorialAuditoria } = require('../../controllers/auditoriasController');
-const { autenticarJWT, isAdmin } = require('../../middleware/auth'); 
+const { autenticarJWT, requirePermission } = require('../../middleware/auth'); 
 
-router.get('/', autenticarJWT, isAdmin, getHistorialAuditoria);
+router.get('/', autenticarJWT, requirePermission('ver_auditoria'), getHistorialAuditoria);
 
 module.exports = router;

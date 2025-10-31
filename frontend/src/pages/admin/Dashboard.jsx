@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useAuth } from "../../hooks/useAuth";
-import axios from "axios";
+//import axios from "axios";
+import { apiFetch } from "../../utils/apiFetch";
 import {
   PieChart,
   Pie,
@@ -35,47 +36,37 @@ const Dashboard = () => {
         const fetchDashboardData = async () => {
             setError(null);
             
-            // Cargar resumen de usuarios
-            axios
-                .get("/api/personas/resumen")
-                .then((res) => {
-                    const resumen = res.data;
-                    const datos = [
-                        { tipo: "Trabajadores", cantidad: resumen.totalTrabajadores }, //Cambiar
-                        { tipo: "Clientes", cantidad: resumen.totalClientes },
-                    ];
-                    setUsuariosData(datos);
-                })
-                .catch((err) => {
-                    console.error("Error al obtener resumen de usuarios:", err);
-                    setError("Error al cargar datos de usuarios.");
-                });
+            try {
+                const resumen = await apiFetch("/api/personas/resumen");
+                const datos = [
+                    { tipo: "Trabajadores", cantidad: resumen.totalTrabajadores },
+                    { tipo: "Clientes", cantidad: resumen.totalClientes },
+                ];
+                setUsuariosData(datos);
 
-            // Cargar resumen de solicitudes y contrataciones
-            axios
-                .get("/api/estadisticas/solicitudes-contrataciones")
-                .then((res) => {
-                    const resumen = res.data;
-                    const datos = [
-                        { tipo: "Solicitudes", cantidad: resumen.totalSolicitudes },
-                        { tipo: "Contrataciones", cantidad: resumen.totalContrataciones },
-                    ];
-                    setActividadData(datos);
-                })
-                .catch((err) => {
-                    console.error("Error al obtener resumen de actividad:", err);
-                    if (!error) setError("Error al cargar datos de actividad.");
-                });
+            } catch (err) {
+                console.error("Error al obtener resumen de usuarios:", err.message);
+                setError("Error al cargar datos de usuarios.");
+            }
+            try {
+                const resumen = await apiFetch("/api/estadisticas/solicitudes-contrataciones");
+                const datos = [
+                    { tipo: "Solicitudes", cantidad: resumen.totalSolicitudes },
+                    { tipo: "Contrataciones", cantidad: resumen.totalContrataciones },
+                ];
+                setActividadData(datos);
+                
+            } catch (err) {
+                console.error("Error al obtener resumen de actividad:", err.message);
+                setError((prevError) => prevError || "Error al cargar datos de actividad.");
+            }
         };
-
         fetchDashboardData();
-
     }, [isLoading, tienePermiso, PERMISO_VER_DASHBOARD, error]);
 
     const COLORS = ["#CD94C1", "#D4E271"];
 
     if (isLoading) return <p className="mt-4">Cargando permisos...</p>;
-
     if (!tienePermiso(PERMISO_VER_DASHBOARD)) {
         return <h2 className="mt-4 text-danger">No tienes permiso para ver el Dashboard.</h2>;
     }

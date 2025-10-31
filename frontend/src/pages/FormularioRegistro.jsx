@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import axios from "axios";
+//import axios from "axios";
+import { apiFetch } from "../utils/apiFetch";
 
 // Formulario de registro — Paso 1 (datos básicos)
 
@@ -55,16 +56,21 @@ const FormularioRegistro = () => {
       return navigate("/formularioTrabajador", { state: form, replace: false });
     }
 
-    try {
-      await axios.post("/api/personas/registrar", {
-        ...form,
-        descripcion: null,
-        disponibilidad_horaria: null,
-        oficiosIds: null,
-        zonasIds: null,
+ try {
+      // 🔄 CAMBIO CLAVE: Usa apiFetch (asumiendo que ya has importado y configurado el POST)
+      await apiFetch("/api/personas/registrar", {
+        method: 'POST',
+        body: { 
+          ...form,
+          descripcion: null,
+          disponibilidad_horaria: null,
+          oficiosIds: null,
+          zonasIds: null,
+        }
       });
 
       setOk("Usuario registrado correctamente.");
+
       setForm({
         nombre: "",
         mail: "",
@@ -75,7 +81,7 @@ const FormularioRegistro = () => {
       });
       navigate("/login");
     } catch (err) {
-      const apiErr = err?.response?.data?.error || "Error al registrar usuario.";
+      const apiErr = err.message || "Error al registrar usuario.";
       setError(apiErr);
     }
   };

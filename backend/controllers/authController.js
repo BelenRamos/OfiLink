@@ -7,7 +7,7 @@ const SECRET_KEY = process.env.SECRET_KEY;
 
 const ROLE_PRIORITIES = {
     'administrador': { priority: 1, route: '/admin' },
-    'supervisor':    { priority: 2, route: '/admin' }, // Tu ruta actual de supervisor
+    'supervisor':    { priority: 2, route: '/admin' },
     'cliente':       { priority: 5, route: '/home' },
     'visitor':       { priority: 6, route: '/home' },
     'default':       { priority: 99, route: '/home' } // Fallback
@@ -126,24 +126,19 @@ const login = async (req, res) => {
         WHERE g.Id = @grupoId;
       `);
 
-    // Juntar los resultados de ambas consultas
     const usuarioCompleto = { ...usuarioAuth, ...resultData.recordset[0] };
-    // Preparar campos del usuario
     const rolesKeysArray = usuarioCompleto.roles_keys ? usuarioCompleto.roles_keys.split(',') : [];
     
-    // Preparar campos del usuario
     usuarioCompleto.roles = usuarioCompleto.roles ? usuarioCompleto.roles.split(',') : [];
-    //usuarioCompleto.roles_keys = usuarioCompleto.roles_keys ? usuarioCompleto.roles_keys.split(',') : [];
-    usuarioCompleto.roles_keys = rolesKeysArray; // Usar la nueva variable
+    usuarioCompleto.roles_keys = rolesKeysArray; 
     usuarioCompleto.permisos_keys = usuarioCompleto.permisos_keys ? usuarioCompleto.permisos_keys.split(',') : [];
 
     // ----------------------------------------------------
     // PASO 3: DETERMINAR RUTA DE INICIO ESCALABLE
     // ----------------------------------------------------
     const rutaInicio = determinarRutaInicio(rolesKeysArray);
-    usuarioCompleto.ruta_inicio = rutaInicio; // Añadir al objeto que va al frontend
-      
-    // Generar JWT (usando usuarioCompleto)
+    usuarioCompleto.ruta_inicio = rutaInicio; 
+
     const token = jwt.sign(
         {
             id: usuarioCompleto.id,

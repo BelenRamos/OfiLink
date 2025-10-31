@@ -10,10 +10,12 @@ const {
 // Usar el middleware de verificación de token en todas las rutas de contrataciones
 router.use(verificarToken);
 
-router.get('/', getContrataciones);
+router.get('/', getContrataciones); 
 
-router.post('/', createContratacion);
+router.post('/', createContratacion); 
 
 router.put('/:id/:accion', manejarAccionContratacion);
 
 module.exports = router;
+
+//No hay permisos para cada ruta
