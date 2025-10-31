@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { Modal, Button, Alert } from "react-bootstrap"; // Importado Alert
 import ResenaForm from "./FormularioResena";
+import { apiFetch } from "../utils/apiFetch";
 
 const ResenaModal = ({ show, onHide, contratacionId, trabajadorId, onResenaCreada }) => {
     const [loading, setLoading] = useState(false);
@@ -12,38 +13,33 @@ const ResenaModal = ({ show, onHide, contratacionId, trabajadorId, onResenaCread
             onHide();
         }
     };
+    
+    const handleGuardar = async (formData) => {
+        setErrorApi(null); 
+        try {
+            setLoading(true);
+            await apiFetch("/api/resenas", {
+                method: "POST",
+                body: {
+                    comentario: formData.comentario,
+                    puntuacion: formData.puntuacion,
+                    contratacionId,
+                },
+            });
+            handleHide(); 
 
-    const handleGuardar = async (formData) => {
-        setErrorApi(null); 
-        try {
-            setLoading(true);
-            const response = await fetch("/api/resenas", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({
-                    comentario: formData.comentario,
-                    puntuacion: formData.puntuacion,
-                    contratacionId,
-                }),
-            });
+            if (onResenaCreada) {
+                onResenaCreada();
+            }
 
-            if (!response.ok) {
-                const error = await response.json();
-                throw new Error(error.error || "Error al guardar la reseña. Intenta de nuevo.");
-            }            
-            handleHide(); 
+        } catch (error) {
+            console.error("Error al guardar reseña:", error.message);
+            setErrorApi(error.message); 
+        } finally {
+            setLoading(false);
+        }
+    };
 
-            if (onResenaCreada) {
-                onResenaCreada();
-            }
-
-        } catch (error) {
-            console.error(error);
-            setErrorApi(error.message); 
-        } finally {
-            setLoading(false);
-        }
-    };
 
     return (
         <Modal show={show} onHide={handleHide} backdrop="static" keyboard={true}>

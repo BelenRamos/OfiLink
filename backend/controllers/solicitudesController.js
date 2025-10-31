@@ -24,8 +24,8 @@ const oficioSubQuery = `
 // Cuando se tome una solictud, se crea la contratacion con estado tomada, y se actualizara cuando llegue la fecha tentaiva
 const ESTADO_CONTRATACION_TOMADA = 2; 
 
-// Middleware para verificar y decodificar el token
-const verificarToken = (req, res, next) => {
+// Middleware para verificar y decodificar el token --> Se reemplaza por autenticarJWT
+/* const verificarToken = (req, res, next) => {
   try {
     const authHeader = req.headers['authorization'];
     if (!authHeader) return res.status(401).json({ error: 'Token no provisto' });
@@ -40,7 +40,7 @@ const verificarToken = (req, res, next) => {
     console.error('Error de token:', error);
     res.status(401).json({ error: 'Token inválido o expirado' });
   }
-};
+}; */
 
 
 const getSolicitudesTrabajador = async (req, res) => {
@@ -282,7 +282,7 @@ const updateSolicitudesCaducadas = async () => {
 };
 
 module.exports = {
-  verificarToken,
+  //verificarToken,
   getSolicitudesCliente,
   getSolicitudesTrabajador,
   createSolicitud,

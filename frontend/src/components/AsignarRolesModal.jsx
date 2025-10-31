@@ -39,7 +39,7 @@ const AsignarRolesModal = ({ grupo, todosLosRoles, cerrarModal, setError, setExi
         try {
         const rolesIds = rolesAsignados.map(r => r.RolId); 
         await apiFetch(`/api/grupos/${grupo.Id}/roles`, { 
-            method: 'POST', 
+            method: 'PUT', 
             body: { rolesIds } 
         });           
             setExito(`Roles del grupo '${grupo.Nombre}' guardados con éxito.`);

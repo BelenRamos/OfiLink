@@ -3,8 +3,8 @@ const jwt = require('jsonwebtoken');
 require('dotenv').config();
 const SECRET_KEY = process.env.SECRET_KEY;
 
-// Middleware para verificar token 
-const verificarToken = (req, res, next) => {
+// Middleware para verificar token  --> Ya no haria falta por el autenticarJWT
+/* const verificarToken = (req, res, next) => {
   try {
     const authHeader = req.headers['authorization'];
     if (!authHeader) return res.status(401).json({ error: 'Token no provisto' });
@@ -18,7 +18,7 @@ const verificarToken = (req, res, next) => {
     console.error('Error de token:', error);
     res.status(401).json({ error: 'Token inválido o expirado' });
   }
-};
+}; */
 
 const crearDenuncia = async (req, res) => {
   try {
@@ -95,7 +95,7 @@ const obtenerDenuncias = async (req, res) => {
 
 
 module.exports = { 
-    verificarToken, 
+    //verificarToken, 
     crearDenuncia, 
     obtenerDenuncias,
     };

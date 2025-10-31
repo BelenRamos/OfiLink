@@ -1,24 +1,22 @@
 const express = require('express');
 const router = express.Router();
+const { autenticarJWT, requirePermission } = require('../middleware/auth'); 
 const {
-  verificarToken,
-  getSolicitudesCliente,
-  getSolicitudesTrabajador,
-  createSolicitud,
-  cancelarSolicitud,
-  tomarSolicitud,
+  getSolicitudesCliente,
+  getSolicitudesTrabajador,
+  createSolicitud,
+  cancelarSolicitud,
+  tomarSolicitud,
 } = require('../controllers/solicitudesController'); 
 
-// Crear una nueva solicitud (Solo Cliente)
-router.post('/', verificarToken, createSolicitud);
-// Obtener solicitudes creadas por el usuario logueado (Solo Cliente)
-router.get('/cliente', verificarToken, getSolicitudesCliente);
-// Obtener solicitudes abiertas que coinciden con el perfil del trabajador (Solo Trabajador)
-router.get('/disponibles', verificarToken, getSolicitudesTrabajador);
-// Cancelar una solicitud (Cliente o Administrador/Supervisor)
-router.put('/:id/cancelar', verificarToken, cancelarSolicitud);
-// Un trabajador toma una solicitud disponible, lo que crea una contratación (Solo Trabajador)
-router.put('/:id/tomar', verificarToken, tomarSolicitud);
+const PERMISO_CANCELAR = 'cancelar_solicitud';
+const PERMISO_TOMAR = 'tomar_solicitud';
+
+router.post('/', autenticarJWT, createSolicitud);
+router.get('/cliente', autenticarJWT, getSolicitudesCliente);
+router.get('/disponibles', autenticarJWT, getSolicitudesTrabajador);
+router.put('/:id/cancelar', autenticarJWT, requirePermission(PERMISO_CANCELAR), cancelarSolicitud); 
+router.put('/:id/tomar', autenticarJWT, requirePermission(PERMISO_TOMAR), tomarSolicitud); 
 
 
 module.exports = router;

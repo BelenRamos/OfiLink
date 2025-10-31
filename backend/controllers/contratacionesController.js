@@ -13,8 +13,8 @@ const ESTADOS = {
   CADUCADA: 6,
 };
 
-// Middleware para verificar y decodificar el token
-const verificarToken = (req, res, next) => {
+// Middleware para verificar y decodificar el token --> No hace flata por el autenticarJWT
+/* const verificarToken = (req, res, next) => {
   try {
     const authHeader = req.headers['authorization'];
     if (!authHeader) return res.status(401).json({ error: 'Token no provisto' });
@@ -30,7 +30,7 @@ const verificarToken = (req, res, next) => {
     console.error('Error de token:', error);
     res.status(401).json({ error: 'Token inválido o expirado' });
   }
-};
+}; */
 
 // Obtener contrataciones
 const getContrataciones = async (req, res) => {
@@ -347,5 +347,5 @@ module.exports = {
   manejarAccionContratacion,
   updateContratacionesEnCurso,
   updateContratacionesCaducadas,
-  verificarToken
+  //verificarToken
 };

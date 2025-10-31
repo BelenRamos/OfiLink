@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-// Importamos todas las funciones del controlador
+const { autenticarJWT, requirePermission } = require('../middleware/auth'); 
 const { 
     getOficios, 
     createOficio, 
@@ -8,23 +8,19 @@ const {
     deleteOficio 
 } = require('../controllers/oficiosController');
 
+const PERMISO_CREAR = 'crear_oficio';
+const PERMISO_EDITAR = 'editar_oficio';
+const PERMISO_ELIMINAR = 'eliminar_oficio';
+
+// GET /api/oficios: Obtiene todos los oficios (PÚBLICA - SIN AUTENTICACIÓN)
+router.get('/', getOficios); 
+
 // --- RUTAS DE GESTIÓN DE OFICIOS ---
 
-// GET /api/oficios
-// Obtiene todos los oficios
-router.get('/', getOficios); //Permiso: ver_oficios
+router.post('/', autenticarJWT, requirePermission(PERMISO_CREAR), createOficio);
 
-// POST /api/oficios
-// Agrega un nuevo oficio
-router.post('/', createOficio); //Permiso: crear_oficio
+router.put('/:id', autenticarJWT, requirePermission(PERMISO_EDITAR), updateOficio);
 
-// PUT /api/oficios/:id
-// Edita un oficio existente (se pasa el ID como parámetro de ruta)
-router.put('/:id', updateOficio); // Permiso: editar_oficio
-
-// DELETE /api/oficios/:id
-// Elimina un oficio (se pasa el ID como parámetro de ruta)
-router.delete('/:id', deleteOficio); //Permiso: eliminar_oficio
+router.delete('/:id', autenticarJWT, requirePermission(PERMISO_ELIMINAR), deleteOficio);
 
 module.exports = router;
-
