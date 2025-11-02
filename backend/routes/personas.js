@@ -28,7 +28,7 @@ router.get('/reporte', autenticarJWT, requirePermission(PERMISO_REPORTE), getPer
 
 // --- RUTAS DE GESTIÓN (ID en parámetro o mi-perfil) ---
 router.put('/mi-perfil/eliminar', autenticarJWT, eliminarCuentaLogica); 
-router.put('/:id/foto', autenticarJWT, uploadMiddleware, subirFoto);
+router.put('/:id/foto', uploadMiddleware, subirFoto);
 router.get('/:id', autenticarJWT, getPersonaPorId);
 router.get('/', autenticarJWT, getPersonas); 
 router.put('/:id', autenticarJWT, actualizarPersona); 

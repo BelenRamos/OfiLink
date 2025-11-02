@@ -1,51 +1,81 @@
-/* const { poolPromise, sql } = require('../db');
+const { poolPromise, sql } = require('../db');
 
-const getAsignaciones = async (req, res) => {
+// --- 1. OBTENER PERSONAS Y SU GRUPO ASIGNADO ---
+const getPersonasConGrupo = async (req, res) => {
   try {
     const pool = await poolPromise;
     const result = await pool.request()
       .query(`
         SELECT 
-          gr.GrupoId,
-          g.Nombre AS GrupoNombre,
-          gr.RolId,
-          r.Nombre AS RolNombre
-        FROM Grupo_Rol gr
-        INNER JOIN Grupo g ON gr.GrupoId = g.Id
-        INNER JOIN Rol r ON gr.RolId = r.Id
-        ORDER BY g.Nombre, r.Nombre
+          p.Id, 
+          p.Nombre AS PersonaNombre, 
+          p.Mail,
+          p.GrupoId,
+          g.Nombre AS GrupoNombre
+        FROM Persona p
+        LEFT JOIN Grupo g ON p.GrupoId = g.Id
+        ORDER BY p.Nombre
       `);
     res.json(result.recordset);
   } catch (error) {
-    console.error('Error al obtener asignaciones:', error);
-    res.status(500).json({ error: 'Error al obtener asignaciones' });
+    console.error('Error al obtener personas y grupos:', error);
+    res.status(500).json({ error: 'Error al obtener personas y grupos' });
   }
 };
 
-const createAsignacion = async (req, res) => {
-  const { grupoId, rolId } = req.body;
-  if (!grupoId || !rolId) {
-    return res.status(400).json({ error: 'grupoId y rolId son obligatorios' });
+// --- 2. OBTENER LISTA DE GRUPOS DISPONIBLES ---
+const getGruposDisponibles = async (req, res) => {
+  try {
+    const pool = await poolPromise;
+    const result = await pool.request()
+      .query(`SELECT Id, Nombre FROM Grupo ORDER BY Nombre`);
+    res.json(result.recordset);
+  } catch (error) {
+    console.error('Error al obtener grupos disponibles:', error);
+    res.status(500).json({ error: 'Error al obtener grupos disponibles' });
   }
+};
+
+
+// --- 3. ASIGNAR GRUPO A UNA PERSONA (ACTUALIZAR Persona.GrupoId) ---
+const asignarGrupoAPersona = async (req, res) => {
+  const { personaId, grupoId } = req.body; // grupoId puede ser null para desasignar
+
+  // El ID de persona es obligatorio
+  if (!personaId) {
+    return res.status(400).json({ error: 'El ID de persona es obligatorio.' });
+  }
+
+  // Convertir grupoId a null si viene como cadena vacía o undefined
+  const finalGrupoId = grupoId === '' || grupoId === undefined || grupoId === null ? null : parseInt(grupoId);
 
   try {
     const pool = await poolPromise;
-    await pool.request()
-      .input('grupoId', sql.Int, grupoId)
-      .input('rolId', sql.Int, rolId)
+    const result = await pool.request()
+      .input('personaId', sql.Int, personaId)
+      .input('grupoId', sql.Int, finalGrupoId)
       .query(`
-        INSERT INTO Grupo_Rol (GrupoId, RolId)
-        VALUES (@grupoId, @rolId)
+        UPDATE Persona
+        SET GrupoId = @grupoId
+        WHERE Id = @personaId
       `);
-    res.status(201).json({ message: 'Asignación creada correctamente' });
-  } catch (error) {
-    console.error('Error al crear asignación:', error);
-    if (error.originalError?.info?.number === 2627) {
-      return res.status(400).json({ error: 'La asignación ya existe' });
+
+    if (result.rowsAffected[0] === 0) {
+      return res.status(404).json({ error: 'Persona no encontrada.' });
     }
-    res.status(500).json({ error: 'Error al crear la asignación' });
+
+    res.status(200).json({ message: `Grupo ${finalGrupoId ? 'asignado' : 'desasignado'} correctamente a la persona.` });
+  } catch (error) {
+    console.error('Error al asignar grupo a persona:', error);
+    if (error.message.includes('FOREIGN KEY constraint')) {
+        return res.status(400).json({ error: 'El GrupoId proporcionado no existe.' });
+    }
+    res.status(500).json({ error: 'Error interno al asignar el grupo.' });
   }
 };
 
-module.exports = { getAsignaciones, createAsignacion };
- */
+module.exports = { 
+    getPersonasConGrupo, 
+    getGruposDisponibles,
+    asignarGrupoAPersona 
+};

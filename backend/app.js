@@ -45,8 +45,8 @@ app.use('/api/permisos', permisosRoutes);
 const gruposRoutes = require('./routes/seguridad/grupos.js');
 app.use('/api/grupos', gruposRoutes);
 
-/* const asignacionesRoutes = require('./routes/seguridad/asignaciones.js');
-app.use('/api/asignaciones', asignacionesRoutes); */
+const asignacionesRoutes = require('./routes/seguridad/asignaciones.js');
+app.use('/api/asignaciones', asignacionesRoutes);
 
 const zonasRoutes = require('./routes/zonas');
 app.use('/api/zonas', zonasRoutes);
