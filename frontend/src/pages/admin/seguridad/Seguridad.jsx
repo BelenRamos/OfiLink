@@ -1,7 +1,7 @@
 import React from 'react';
 import { Routes, Route, Link } from 'react-router-dom';
 import Roles from './Roles';
-//import Permisos from './Permisos';
+import Permisos from './Permisos';
 import Grupos from './Grupos';
 //import Asignaciones from './Asignaciones';
 import Auditoria from './Auditoria';
@@ -34,7 +34,7 @@ const Seguridad = () => {
             <ul className="list-group">
               <li className="list-group-item"><Link to="sessionLogs">Historial de Sesiones</Link></li>
               <li className="list-group-item"><Link to="roles">Roles</Link></li>
-{/*               <li className="list-group-item"><Link to="permisos">Permisos</Link></li> */}
+              <li className="list-group-item"><Link to="permisos">Permisos</Link></li>
               <li className="list-group-item"><Link to="grupos">Grupos</Link></li>
               {/* <li className="list-group-item"><Link to="asignaciones">Asignaciones</Link></li> */}
               <li className="list-group-item"><Link to="auditoria">Auditoría</Link></li>
@@ -44,6 +44,7 @@ const Seguridad = () => {
             <Routes>
               <Route path="sessionLogs" element={<SessionLogs />} />
               <Route path="roles" element={<Roles />} />
+              <Route path="permisos" element={<Permisos />} />
               <Route path="grupos" element={<Grupos />} />
               <Route path="auditoria" element={<Auditoria />} />
             </Routes>
