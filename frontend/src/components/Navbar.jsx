@@ -25,22 +25,39 @@ const Navbar = () => {
 
 
     return (
-        <nav className="navbar navbar-expand-lg navbar-custom px-4 navbar-reducido">
-            {modoAdmin ? ( 
-                <span className="navbar-brand d-flex align-items-center">
-                    <img src={logo} alt="OfiLink logo" className="logo-img" />
-                </span>
-            ) : (
-                <Link 
-                    className="navbar-brand d-flex align-items-center" 
-                    to={usuario ? "/home" : "/"} 
-                >
-                    <img src={logo} alt="OfiLink logo" className="logo-img" />
-                </Link>
-            )}
+        <nav className="navbar navbar-expand-lg navbar-custom px-4 navbar-reducido">
+            
+            {/* Lógica del Logo: Si es Admin/Supervisor, lleva a /admin */}
+            {modoAdmin ? ( 
+                <Link 
+                    className="navbar-brand d-flex align-items-center"
+                    to="/admin" 
+                >
+                    <img src={logo} alt="OfiLink logo" className="logo-img" />
+                </Link>
+            ) : (
+                <Link 
+                    className="navbar-brand d-flex align-items-center" 
+                    to={usuario ? "/home" : "/"} 
+                >
+                    <img src={logo} alt="OfiLink logo" className="logo-img" />
+                </Link>
+            )}
 
-            <div className="collapse navbar-collapse" id="navbarNav">
-                <ul className="navbar-nav ms-auto">
+            <button 
+                className="navbar-toggler" 
+                type="button" 
+                data-bs-toggle="collapse" 
+                data-bs-target="#navbarNav" 
+                aria-controls="navbarNav" 
+                aria-expanded="false" 
+                aria-label="Toggle navigation"
+            >
+                <span className="navbar-toggler-icon"></span>
+            </button>
+
+            <div className="collapse navbar-collapse" id="navbarNav">
+                <ul className="navbar-nav ms-auto">
                     
                     {/* ENLACES DE ADMINISTRACIÓN */}
                     {modoAdmin && (
