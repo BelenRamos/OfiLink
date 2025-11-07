@@ -1,8 +1,7 @@
 const { poolPromise, sql } = require('../db');
 
-
 const filtrarTrabajadores = async (req, res) => {
-  const { oficio, zona } = req.query;
+  const { oficio, zona, calificacion } = req.query;
   const zonaNombre = zona?.replace('Zona ', '');
 
   try {
@@ -35,6 +34,13 @@ const filtrarTrabajadores = async (req, res) => {
         )
       `;
     }
+    
+    const calificacionMinima = parseFloat(calificacion);
+    if (!isNaN(calificacionMinima) && calificacionMinima > 0) {
+      request.input('calificacionMin', sql.Decimal(3, 2), calificacionMinima);
+      // Se utiliza '>=' para que solo se muestren los trabajadores que tienen esa calificación o superior.
+      filtros += ` AND t.calificacion_promedio >= @calificacionMin`; 
+    }
 
     const result = await request.query(`
       SELECT 
@@ -42,7 +48,7 @@ const filtrarTrabajadores = async (req, res) => {
         p.nombre,
         p.mail,
         p.foto AS foto_url,
-        p.contacto,   -- 💡 CORRECCIÓN: Ahora se selecciona de la tabla Persona (p)
+        p.contacto,   
         t.descripcion,
         t.disponible,
         t.calificacion_promedio,
@@ -71,6 +77,8 @@ const filtrarTrabajadores = async (req, res) => {
 
     const trabajadores = result.recordset.map(t => ({
       ...t,
+      //Conversión de SQL DECIMAL a Number
+      calificacion_promedio: t.calificacion_promedio !== null ? parseFloat(t.calificacion_promedio) : null, 
       oficios: t.oficios ? t.oficios.split(',').map(o => o.trim()) : [],
       zonas: t.zonas ? t.zonas.split(',').map(z => z.trim()) : [],
     }));

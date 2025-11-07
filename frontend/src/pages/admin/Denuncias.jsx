@@ -1,86 +1,137 @@
-import React, { useEffect, useState } from 'react';
+import React from 'react';
 import { useAuth } from '../../hooks/useAuth';
-import { apiFetch } from '../../utils/apiFetch';
+import useDenuncias from '../../hooks/useDenuncias'; 
+import DetalleDenunciaModal from '../../components/DetalleDenunciaModal';
+
+const SortIcon = ({ direccion }) => {
+    if (direccion === 'asc') return '🔼';
+    if (direccion === 'desc') return '🔽';
+    return '↕️'; // Icono por defecto (sin ordenar)
+};
 
 const Denuncias = () => {
-  const { tienePermiso, isLoading } = useAuth();
-  const [denuncias, setDenuncias] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
+    const { tienePermiso, isLoading: isLoadingAuth } = useAuth();
+    const PERMISO_VER_DENUNCIAS = 'ver_denuncias';
 
-  const PERMISO_VER_DENUNCIAS = 'ver_denuncias';
+    // Usamos el custom hook, extrayendo los estados y handlers necesarios.
+    const {
+        denuncias,
+        denunciasManejadas,
+        loading,
+        error,
+        filtroBusqueda,
+        setFiltroBusqueda,
+        fechaInicio,
+        setFechaInicio,
+        fechaFin,
+        setFechaFin,
+        ordenamiento,
+        handleSort,
+        denunciaSeleccionada, 
+        abrirModalDetalle, 
+        cerrarModalDetalle,
+    } = useDenuncias(tienePermiso, PERMISO_VER_DENUNCIAS);
 
-  const cargarDenuncias = async () => {
+    // El estado de carga incluye la autenticación y la carga de datos del hook.
+    if (isLoadingAuth || loading) return <p className="mt-4">Cargando permisos y denuncias...</p>;
+
     if (!tienePermiso(PERMISO_VER_DENUNCIAS)) {
-        setError("No tiene permiso para ver el listado de denuncias.");
-        setLoading(false);
-        return;
+        return <h2 className="mt-4 text-danger">No tienes permiso para ver el listado de denuncias.</h2>;
     }
 
-    try {
-      const data = await apiFetch('/api/denuncias'); 
-      setDenuncias(data);
-      setError(null);
-    } catch (err) {
-      console.error('Error al obtener denuncias:', err);
-      const errorMessage = err.response?.error || "Error al cargar las denuncias.";
-      setError(errorMessage);
-      setDenuncias([]);
-    } finally {
-      setLoading(false);
-    }
-  };
+    return (
+        <div className="container mt-4">
+            <h3>Denuncias registradas</h3>
+            <hr />
+            {error && <div className="alert alert-danger">{error}</div>} 
 
-  useEffect(() => {
-    if (!isLoading) {
-        if (tienePermiso(PERMISO_VER_DENUNCIAS)) {
-            cargarDenuncias();
-        } else {
-            setLoading(false); // Detener la carga si el permiso no existe
-        }
-    }
-  }, [isLoading, tienePermiso]);
+            {/* --- Controles de Filtro --- */}
+            <div className="row mb-4 bg-light p-3 rounded shadow-sm">
+                
+                {/* Filtro General por Texto */}
+                <div className="col-12 mb-3">
+                    <label className="form-label fw-bold">Búsqueda General</label>
+                    <input
+                        type="text"
+                        className="form-control"
+                        placeholder="Buscar por Cliente, Trabajador, Motivo o ID..."
+                        value={filtroBusqueda}
+                        onChange={(e) => setFiltroBusqueda(e.target.value)}
+                    />
+                </div>
+                
+                {/* Filtro por Fecha (Inicio) */}
+                <div className="col-md-6 mb-3">
+                    <label className="form-label fw-bold">Fecha de Inicio</label>
+                    <input
+                        type="date"
+                        className="form-control"
+                        value={fechaInicio}
+                        onChange={(e) => setFechaInicio(e.target.value)}
+                    />
+                </div>
 
-  if (isLoading || loading) return <p className="mt-4">Cargando permisos y denuncias...</p>;
+                {/* Filtro por Fecha (Fin) */}
+                <div className="col-md-6 mb-3">
+                    <label className="form-label fw-bold">Fecha de Fin</label>
+                    <input
+                        type="date"
+                        className="form-control"
+                        value={fechaFin}
+                        onChange={(e) => setFechaFin(e.target.value)}
+                    />
+                </div>
+            </div>
+            {/* --------------------------- */}
 
-  if (!tienePermiso(PERMISO_VER_DENUNCIAS)) {
-      return <h2 className="mt-4 text-danger">No tienes permiso para ver el listado de denuncias.</h2>;
-  }
+            {denuncias.length === 0 && !error ? (
+                <p>No hay denuncias registradas.</p>
+            ) : (
+                <>
+                    <p className="small text-muted">Mostrando **{denunciasManejadas.length}** de **{denuncias.length}** denuncias.</p>
+                    {denunciasManejadas.length === 0 ? (
+                        <div className="alert alert-info">No se encontraron denuncias que coincidan con los filtros aplicados.</div>
+                    ) : (
+                        <table className="table table-striped table-hover">
+                            <thead>
+                                <tr>
+                                    {/* Encabezado con Ordenamiento por ID */}
+                                    <th onClick={() => handleSort('id')} style={{ cursor: 'pointer' }}>
+                                        ID <SortIcon direccion={ordenamiento.columna === 'id' ? ordenamiento.direccion : ''} />
+                                    </th>
+                                    <th>Cliente</th>
+                                    <th>Trabajador</th>
+                                    <th>Motivo</th>
+                                    <th>Fecha</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {denunciasManejadas.map((d) => (
+                                    <tr 
+                                        key={d.id}
+                                        onClick={() => abrirModalDetalle(d)} 
+                                        style={{ cursor: 'pointer' }} 
+                                    >
+                                        <td>{d.id}</td>
+                                        <td>{d.nombre_cliente}</td>
+                                        <td>{d.nombre_trabajador}</td>
+                                        <td>{d.motivo.length > 50 ? d.motivo.substring(0, 50) + '...' : d.motivo}</td> 
+                                        <td>{new Date(d.fecha).toLocaleDateString()}</td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    )}
+                </>
+            )}
 
-  return (
-    <div className="container mt-4">
-      <h3>Denuncias registradas</h3>
-      <hr />
-      {error && <div className="alert alert-danger">{error}</div>} 
-
-      {denuncias.length === 0 && !error ? (
-        <p>No hay denuncias registradas.</p>
-      ) : (
-        <table className="table table-striped">
-          <thead>
-            <tr>
-              <th>ID</th>
-              <th>Cliente</th>
-              <th>Trabajador</th>
-              <th>Motivo</th>
-              <th>Fecha</th>
-            </tr>
-          </thead>
-          <tbody>
-            {denuncias.map((d) => (
-              <tr key={d.id}>
-                <td>{d.id}</td>
-                <td>{d.nombre_cliente}</td>
-                <td>{d.nombre_trabajador}</td>
-                <td>{d.motivo}</td>
-                <td>{new Date(d.fecha).toLocaleDateString()}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      )}
-    </div>
-  );
+            {/* Renderización del Modal */}
+            <DetalleDenunciaModal 
+                denuncia={denunciaSeleccionada} 
+                onClose={cerrarModalDetalle} 
+            />
+        </div>
+    );
 };
 
 export default Denuncias;

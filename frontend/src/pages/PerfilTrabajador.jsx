@@ -1,191 +1,138 @@
-import React, { useEffect, useState } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import React from 'react';
+import { useNavigate } from 'react-router-dom';
 import FormularioContratacion from '../components/FormularioContratacion';
 import DenunciaModal from "../components/DenunciaModal";
 import { useAuth } from "../hooks/useAuth";
+import usePerfilTrabajador from '../hooks/usePerfilTrabajador'; 
 
-const BACKEND_BASE_URL = 'http://localhost:3000';
-const DEFAULT_AVATAR = '/default-avatar.png';
+const DEFAULT_AVATAR = '/default-avatar.png'; 
 
 const PerfilTrabajador = () => {
-const { id } = useParams();
-  const navigate = useNavigate();
-  const { usuario: usuarioContext, tienePermiso, tieneRol } = useAuth(); 
-  const [usuario, setUsuario] = useState(null); 
-  const [trabajador, setTrabajador] = useState(null);
-  const [reseñas, setReseñas] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [mostrarDenuncia, setMostrarDenuncia] = useState(false);
-
-  const [mostrandoFormulario, setMostrandoFormulario] = useState(false);
-  // Estado para mostrar mensajes de éxito/error (como la denuncia o contratación)
-  const [mensajeFeedback, setMensajeFeedback] = useState({ tipo: '', mensaje: '' }); 
-
-  const PERMISO_DENUNCIAR = 'denunciar_trabajador';
-
-  // Cargar usuario y datos del trabajador
-  useEffect(() => {
-    if (mensajeFeedback.mensaje) {
-      const timer = setTimeout(() => {
-        setMensajeFeedback({ tipo: '', mensaje: '' });
-      }, 5000); // El mensaje desaparece después de 5 segundos
-      return () => clearTimeout(timer);
-    }
-  }, [mensajeFeedback]);
-
-  useEffect(() => {
-        if (usuarioContext) {
-             setUsuario(usuarioContext);
-        } else {
-            const usuarioGuardado = localStorage.getItem('usuarioActual');
-            if (usuarioGuardado) {
-                setUsuario(JSON.parse(usuarioGuardado));
-            }
-        }
-
-    const fetchTrabajador = async () => {
-      try {
-        const res = await fetch(`/api/trabajadores/${id}`);
-        const data = await res.json();
-        setTrabajador(data);
-      } catch (error) {
-        console.error('Error al obtener el trabajador:', error);
-      }
-    };
-
-    const fetchReseñas = async () => {
-      try {
-        const res = await fetch(`/api/resenas/trabajador/${id}`);
-        const data = await res.json();
-        setReseñas(data);
-      } catch (error) {
-        console.error('Error al obtener reseñas:', error);
-      }
-    };
-
-    setMensajeFeedback({ tipo: '', mensaje: '' });
+    const navigate = useNavigate();
+    const { usuario: usuarioContext, tienePermiso, tieneRol } = useAuth(); 
     
-    Promise.all([fetchTrabajador(), fetchReseñas()]).finally(() =>
-      setLoading(false)
-    );
-  }, [id, usuarioContext]);
+    // Usar el hook para obtener toda la lógica y estados
+    const {
+        trabajador,
+        reseñas,
+        loading,
+        mensajeFeedback,
+        mostrarDenuncia,
+        mostrandoFormulario,
+        usuario,
+        handleContratacionExitosa,
+        handleDenunciaExitosa,
+        handleAbrirFormulario,
+        handleCerrarFormulario,
+        handleAbrirDenuncia,
+        handleCerrarDenuncia,
+        fotoUrl, 
+        calificacion_promedio 
+    } = usePerfilTrabajador(usuarioContext);
 
+    const PERMISO_DENUNCIAR = 'denunciar_trabajador'; 
+    
+    const puedeContratar = tieneRol('cliente');
+    const puedeDenunciar = tieneRol('cliente') && tienePermiso(PERMISO_DENUNCIAR);
+    const alertClass = mensajeFeedback.tipo === 'success' ? 'alert-success' : 'alert-danger';
 
-  const handleContratacionExitosa = () => {
-    setMostrandoFormulario(false);
-    setMensajeFeedback({ tipo: 'success', mensaje: 'Contratación creada con éxito.' });
-  };
+    if (loading) return <div className="container mt-4 text-center">Cargando...</div>;
 
+    if (!trabajador)
+        return (
+            <div className="container mt-4">
+                <div className="alert alert-danger">Trabajador no encontrado.</div>
+            </div>
+        );
 
-  const handleDenunciaExitosa = () => {
-    setMostrarDenuncia(false);
-    setMensajeFeedback({ tipo: 'success', mensaje: 'Denuncia enviada con éxito. Revisaremos la situación.' });
-  }
-
-  if (loading) return <div className="container mt-4">Cargando...</div>;
-
-  const fotoUrl = trabajador.foto_url ? BACKEND_BASE_URL + trabajador.foto_url : DEFAULT_AVATAR;
-
-  if (!trabajador)
     return (
-      <div className="container mt-4">
-        <p>Trabajador no encontrado.</p>
-      </div>
-    );
+        <div className="container mt-4">
 
-  const puedeContratar = tieneRol('cliente');
-  const puedeDenunciar = tieneRol('cliente') && tienePermiso(PERMISO_DENUNCIAR);
-  const alertClass = mensajeFeedback.tipo === 'success' ? 'alert-success' : 'alert-danger';
+            <button className="btn btn-outline-secondary mb-3" onClick={() => navigate(-1)}>
+                ← Volver
+            </button>
 
-  return (
-    <div className="container mt-4">
-      <button
-        className="btn btn-secondary mb-3"
-        onClick={() => navigate(-1)}
-      >
-        ← Volver
-      </button>
+            {mensajeFeedback.mensaje && (
+                <div className={`alert ${alertClass} mb-4 text-center fw-bold`}>
+                    {mensajeFeedback.mensaje}
+                </div>
+            )}
+      <div className="card shadow-sm p-4 mb-4">
+        <div className="d-flex flex-column flex-md-row align-items-center">
 
-      {/* Mostrar mensaje de feedback */}
-      {mensajeFeedback.mensaje && (
-        <div className={`alert ${alertClass} mb-4`}>
-          {mensajeFeedback.mensaje}
-        </div>
-      )} 
-
-      <div className="d-flex align-items-center mb-3">
-        <img
-          src={fotoUrl}
-          alt={`Foto de ${trabajador.nombre}`}
-          style={{ width: '100px', height: '100px', objectFit: 'cover', borderRadius: '50%' }}
-          className="me-3 border"
-        />
-        <div>
-          <h2>{trabajador.nombre}</h2>
-          <h5 className="text-muted">
-            {trabajador.oficios?.join(', ')} - {trabajador.zona}
-          </h5>
-        </div>
-      </div>
-      <p>{trabajador.descripcion}</p>
-      <p>
-        <strong>Teléfono:</strong>{' '}
-        <a href={`tel:${trabajador.contacto}`}>{trabajador.contacto}</a> {/* Contacto? */}
-      </p>
-
-      <hr />
-
-    {puedeContratar && trabajador.disponible && (
-        mostrandoFormulario ? (
-          <FormularioContratacion
-            idTrabajador={trabajador.id}
-            onCancel={() => setMostrandoFormulario(false)}
-            onSuccess={handleContratacionExitosa} 
+          <img
+            src={fotoUrl}
+            alt={trabajador.nombre}
+            className="rounded-circle border mb-3 mb-md-0"
+            style={{ width: 120, height: 120, objectFit: 'cover' }}
           />
-        ) : (
-          <button
-            className="btn btn-primary mt-3"
-            onClick={() => {
-                setMostrandoFormulario(true);
-                setMensajeFeedback({ tipo: '', mensaje: '' }); 
-            }}
-          >
-            Contratar
-          </button>
-        )
-      )}
 
-      {puedeDenunciar && (
-        <button
-          className="btn btn-danger mt-3 ms-2"
-          onClick={() => {
-              setMostrarDenuncia(true);
-              setMensajeFeedback({ tipo: '', mensaje: '' }); 
-          }}>
-          Denunciar trabajador
-        </button>
-      )}
+          <div className="ms-md-4 text-center text-md-start">
+            <h2 className="fw-bold">{trabajador.nombre}</h2>
 
-      <DenunciaModal
-        show={mostrarDenuncia}
-        onHide={() => setMostrarDenuncia(false)}
-        trabajadorId={trabajador.id}
-        usuario={usuario}
-        onDenunciaCreada={handleDenunciaExitosa} 
-      />
+            {calificacion_promedio !== null && (
+              <p className="mb-1">
+                ⭐ <strong>{parseFloat(calificacion_promedio)}</strong> / 5
+              </p>
+            )}
 
-      <h3>Reseñas</h3>
+            <h5 className="text-muted mb-2">
+              {trabajador.oficios?.join(', ')} • {trabajador.zona}
+            </h5>
+
+            <p>{trabajador.descripcion}</p>
+
+            <p>
+              <strong>📞 Teléfono:</strong>{' '}
+              <a href={`tel:${trabajador.contacto}`} className="text-decoration-none fw-bold">
+                {trabajador.contacto}
+              </a>
+            </p>
+
+          {puedeContratar && trabajador.disponible && (
+            mostrandoFormulario ? (
+                <FormularioContratacion
+                    idTrabajador={trabajador.id}
+                    onCancel={handleCerrarFormulario} // Handler del hook
+                    onSuccess={handleContratacionExitosa} // Handler del hook
+                />
+            ) : (
+                <button className="btn btn-primary me-2 mt-2" onClick={handleAbrirFormulario}>
+                    📌 Contratar
+                </button>
+            )
+         )}
+
+          {puedeDenunciar && (
+              <button className="btn btn-outline-danger mt-2" onClick={handleAbrirDenuncia}>
+                  ⚠️ Denunciar
+              </button>
+          )}
+          </div>
+        </div>
+        </div>
+            <DenunciaModal
+                show={mostrarDenuncia}
+                onHide={handleCerrarDenuncia} // Handler del hook
+                trabajadorId={trabajador.id}
+                usuario={usuario}
+                onDenunciaCreada={handleDenunciaExitosa} // Handler del hook
+            />
+
+      <h3 className="mb-3">Reseñas</h3>
+
       {reseñas.length === 0 ? (
-        <p>No hay reseñas para este trabajador.</p>
+        <div className="alert alert-info">No hay reseñas para este trabajador aún.</div>
       ) : (
-        <ul className="list-group">
-          {reseñas.map((r) => (
-            <li key={r.id} className="list-group-item">
-              <strong>{r.nombre_cliente}</strong>: {r.comentario}{' '}
-              <span>⭐ {r.puntuacion}</span>
-            </li>
+        <div className="list-group">
+          {reseñas.map(r => (
+            <div key={r.id} className="list-group-item py-3">
+              <strong>{r.nombre_cliente}</strong>
+              <div className="text-warning">⭐ {r.puntuacion}</div>
+              <p className="mb-0">{r.comentario}</p>
+            </div>
           ))}
-        </ul>
+        </div>
       )}
     </div>
   );
