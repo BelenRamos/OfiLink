@@ -1,45 +1,24 @@
-import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import useCambiarPassword from '../hooks/useCambiarPassword'; 
 
 const CambiarPassword = () => {
-    const [credenciales, setCredenciales] = useState({ email: '', oldPassword: '', newPassword: '' });
-    const [mensaje, setMensaje] = useState('');
-    const navigate = useNavigate();
+    const { 
+        credenciales, 
+        mensaje, 
+        loading, 
+        handleChange, 
+        handleSubmit 
+    } = useCambiarPassword();
 
-    const handleChange = (e) => {
-        setCredenciales({ ...credenciales, [e.target.name]: e.target.value });
-    };
-
-    const handleSubmit = async (e) => {
-        e.preventDefault();
-        setMensaje('Cambiando contraseña...');
-        try {
-            const res = await fetch('/api/auth/cambiarPassword', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(credenciales),
-            });
-
-            const data = await res.json();
-
-            setMensaje(data.mensaje);
-
-            if (res.ok) {
-
-                setTimeout(() => {
-                    navigate('/login');
-                }, 1000); 
-                
-            }
-        } catch (error) {
-            setMensaje('Error de conexión. Inténtalo de nuevo más tarde.');
-        }
+    const getAlertClass = (msg) => {
+        if (!msg) return 'd-none';
+        return msg.startsWith('Error') ? 'alert-danger' : 'alert-info';
     };
 
     return (
         <div className="container mt-4" style={{ maxWidth: '400px' }}>
             <h2 className="mb-4">Cambiar Contraseña</h2>
             <form onSubmit={handleSubmit}>
+                {/* Email */}
                 <div className="mb-3">
                     <label className="form-label">Email</label>
                     <input
@@ -51,6 +30,8 @@ const CambiarPassword = () => {
                         required
                     />
                 </div>
+                
+                {/* Contraseña Actual */}
                 <div className="mb-3">
                     <label className="form-label">Contraseña Actual</label>
                     <input
@@ -62,6 +43,8 @@ const CambiarPassword = () => {
                         required
                     />
                 </div>
+                
+                {/* Contraseña nueva*/}
                 <div className="mb-3">
                     <label className="form-label">Nueva Contraseña</label>
                     <input
@@ -73,9 +56,21 @@ const CambiarPassword = () => {
                         required
                     />
                 </div>
-                <button type="submit" className="btn btn-primary w-100">Cambiar Contraseña</button>
+                
+                <button 
+                    type="submit" 
+                    className="btn btn-primary w-100" 
+                    disabled={loading} 
+                >
+                    {loading ? 'Cambiando...' : 'Cambiar Contraseña'}
+                </button>
             </form>
-            {mensaje && <div className="alert alert-info mt-3">{mensaje}</div>}
+        
+            {mensaje && (
+                <div className={`alert ${getAlertClass(mensaje)} mt-3`}>
+                    {mensaje}
+                </div>
+            )}
         </div>
     );
 };

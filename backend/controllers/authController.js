@@ -406,6 +406,11 @@ const cambiarPassword = async (req, res) => {
       .input('email', sql.VarChar, email)
       .query(`SELECT id, contraseña FROM Persona WHERE mail = @email`);
 
+    if (result.recordset.length === 0) {
+      // Se usa 404 para indicar "recurso (usuario) no encontrado".
+      return res.status(404).json({ mensaje: 'El email no está registrado.' });
+    }
+
     if (result.recordset.length === 0) {
       return res.status(401).json({ mensaje: 'Credenciales inválidas.' });
     }
