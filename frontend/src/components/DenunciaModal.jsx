@@ -1,10 +1,10 @@
 import React, { useState } from "react";
-import { Modal, Button, Form, Alert } from "react-bootstrap"; // Importado Alert
+import { Modal, Button, Form, Alert } from "react-bootstrap"; 
 
 const DenunciaModal = ({ show, onHide, trabajadorId, usuario, onDenunciaCreada }) => {
   const [motivo, setMotivo] = useState("");
   const [loading, setLoading] = useState(false);
-  // Nuevo estado para manejar errores dentro del modal, en lugar de alert()
+  // Nuevo estado para manejar errores dentro del modal
   const [errorLocal, setErrorLocal] = useState(""); 
   
   const handleHide = () => {
@@ -22,7 +22,6 @@ const DenunciaModal = ({ show, onHide, trabajadorId, usuario, onDenunciaCreada }
     setErrorLocal(""); // Limpiamos errores anteriores
 
     if (!motivo.trim()) {
-      // ❌ REEMPLAZADO: alert("Por favor, escribí el motivo de la denuncia.")
       setErrorLocal("Por favor, escribí el motivo de la denuncia."); 
       return;
     }
@@ -45,17 +44,14 @@ const DenunciaModal = ({ show, onHide, trabajadorId, usuario, onDenunciaCreada }
       const data = await response.json();
       if (!response.ok) throw new Error(data.error || "Error al registrar la denuncia");
 
-      // ❌ ELIMINADO: alert("Denuncia enviada correctamente."); 
       setMotivo(""); 
-      handleHide(); // Cierra el modal, también limpia los estados
+      handleHide(); 
 
-      // ✅ ESTA LLAMADA ACTIVA EL MENSAJE EN EL PADRE (PerfilTrabajador)
       if (onDenunciaCreada) onDenunciaCreada(); 
 
     } catch (error) {
       console.error("Error al enviar denuncia:", error);
-      // ❌ REEMPLAZADO: alert(error.message);
-      setErrorLocal(error.message); // Muestra el error en el modal
+      setErrorLocal(error.message); 
     } finally {
       setLoading(false);
     }
