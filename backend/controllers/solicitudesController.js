@@ -64,6 +64,7 @@ const getSolicitudesTrabajador = async (req, res) => {
                 s.fecha, 
                 es.descripcion AS estado, 
                 c.nombre AS cliente,
+                c.contacto AS contacto_cliente,
                 ${oficioSubQuery} AS oficios_requeridos
             FROM Solicitud s
             JOIN EstadosSolicitud es ON s.estado_id = es.id

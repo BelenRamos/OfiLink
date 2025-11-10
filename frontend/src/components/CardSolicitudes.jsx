@@ -1,67 +1,61 @@
 import React from "react";
-import { apiFetch } from "../utils/apiFetch";
+import useSolicitudActions from "../hooks/componentes/useSolicitudCard"; 
 
-const CardSolicitudes = ({ solicitud, usuario, onActualizar , permisos}) => {
-    const { id, descripcion_trabajo, cliente, estado, oficios_requeridos } = solicitud;
+const CardSolicitudes = ({ solicitud, usuario, onActualizar, permisos }) => {
+    // Desestructuramos las propiedades necesarias
+    const { 
+        id, 
+        descripcion_trabajo, 
+        cliente, // Cliente es el nombre del cliente (string) o el objeto completo, dependiendo del backend
+        estado, 
+        oficios_requeridos,
+        contacto_cliente // <-- Este campo ahora viene del backend (c.contacto AS contacto_cliente)
+    } = solicitud;
 
     const { puedeCancelar = false, puedeTomar = false } = permisos;
     
-    const tomarSolicitud = async () => {
-        try {
-            await apiFetch(`/api/solicitudes/${id}/tomar`, { method: "PUT" });
-            onActualizar('success', '¡Solicitud tomada correctamente! ¡Contratación creada!'); 
-            
-        } catch (error) {
-            console.error("Error al tomar la solicitud:", error);
+    // Usar el hook para obtener los handlers de las acciones
+    const { tomarSolicitud, cancelarSolicitud } = useSolicitudActions(id, onActualizar);
 
-            const defaultMessage = "Ocurrió un error al intentar tomar la solicitud. Verifica tu sesión o el estado.";
-            const errorMessage = error.response?.error || defaultMessage;
-            
-            onActualizar('error', errorMessage);
-        }
-    };
-
-    const cancelarSolicitud = async () => {
-        try {
-            await apiFetch(`/api/solicitudes/${id}/cancelar`, { method: "PUT" });
-            
-            onActualizar('success', 'Solicitud cancelada correctamente.'); 
-            
-        } catch (error) {
-            console.error("Error al cancelar la solicitud:", error);
-            
-            const defaultMessage = "Ocurrió un error al intentar cancelar la solicitud.";
-            const errorMessage = error.response?.error || defaultMessage;
-            
-            onActualizar('error', errorMessage);
-        }
-    };
-
+    // Lógica de visualización de oficios
     const oficiosDisplay = Array.isArray(oficios_requeridos)
         ? oficios_requeridos.map(o => o.nombre || o.Nombre || 'Oficio Desconocido').join(', ')
         : oficios_requeridos || 'N/D';
+
+    // Obtener la clase de estado
+    const estadoClass = 
+        estado === 'Abierta' ? 'bg-success' : 
+        estado === 'Cancelada' ? 'bg-danger' : 
+        estado === 'Caducada' ? 'bg-secondary' : 'bg-warning text-dark';
+
+    // Ahora, simplemente usamos el campo que viene del backend
+    const contactoDisplay = contacto_cliente || 'N/D';
 
     return (
         <div className="card mb-3 shadow-sm">
             <div className="card-body">
                 <h5 className="card-title">Trabajo Requerido: {descripcion_trabajo}</h5>
                 <p className="card-text">
-                    {/* Solo visible si está disponible (Trabajador) */}
+                    {/* Solo visible si el usuario logueado es un Trabajador */}
                     {usuario?.roles_keys?.includes("trabajador") && (
-                        <><strong>Cliente:</strong> {cliente || 'N/D'} <br /></>
+                        <>
+                            {/* Mostrar nombre del cliente (asumiendo que 'cliente' es el nombre, o accedemos a cliente.nombre) */}
+                            <strong>Cliente:</strong> {cliente?.nombre || cliente || 'N/D'} <br /> 
+                            <strong>Contacto:</strong> {contactoDisplay} <br /> 
+                        </>
                     )}
-                    {/* Mostrar los oficios requeridos como una lista legible */}
+                    
                     <strong>Oficios:</strong> {oficiosDisplay} <br /> 
                     
-                    <strong>Estado:</strong> <span className={`badge ${estado === 'Abierta' ? 'bg-success' : estado === 'Cancelada' ? 'bg-danger' : estado === 'Caducada' ? 'bg-secondary'  :'bg-warning text-dark'}`}>{estado}</span>
+                    <strong>Estado:</strong> <span className={`badge ${estadoClass}`}>{estado}</span>
                 </p>
 
                 <div className="d-flex gap-2">
                     {puedeCancelar && estado === "Abierta" && (
-                        <button className="btn btn-danger btn-sm" onClick={cancelarSolicitud}>
-                            Cancelar Solicitud
-                        </button>
-                    )}
+                        <button className="btn btn-danger btn-sm" onClick={cancelarSolicitud}>
+                            Cancelar Solicitud
+                        </button>
+                    )}
                     {puedeTomar && estado === "Abierta" && (
                         <button className="btn btn-success btn-sm" onClick={tomarSolicitud}>
                             Tomar Solicitud
