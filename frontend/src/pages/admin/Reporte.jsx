@@ -1,66 +1,38 @@
-import React, { useEffect, useRef, useState } from 'react';
-// import axios from 'axios'; 
-import { apiFetch } from "../../utils/apiFetch"; 
-import { imprimirHTML } from "../../utils/imprimirHTML";
+import React, { useRef } from 'react';
 import { useAuth } from "../../hooks/useAuth";
+import useReporte from "../../hooks/seguridad/useReporte"; 
+import { imprimirHTML } from "../../utils/imprimirHTML";
+import ReporteTabla from "../../components/TablaReporte"; 
 
 const Reporte = () => {
-  const { tienePermiso, isLoading } = useAuth();
-  const [datos, setDatos] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
-  const [rolFiltro, setRolFiltro] = useState('todos'); 
+  const authContext = useAuth();
   const printRef = useRef();
+  
+  const { 
+    datos,
+    loading,
+    error,
+    rolFiltro,
+    setRolFiltro,
+    imprimir,
+    puedeVer,
+    isLoadingAuth,
+  } = useReporte(authContext);
 
-  const PERMISO_VER_REPORTE = 'ver_reporte';
+  const handleImprimir = () => {
+    // 1. Verificar si el hook permite la impresión (chequeo de permiso)
+    const canPrint = imprimir(); 
+    if (!canPrint) return; 
 
-  useEffect(() => {
-    if (isLoading) return;
-
-    if (!tienePermiso(PERMISO_VER_REPORTE)) {
-      setLoading(false);
-      setError('No tienes permiso para ver el reporte.');
-      return;
-    }
-
-  const fetchDatos = async () => {
-      setLoading(true); 
-      setError('');
-      try {
-        let url = '/api/personas/reporte';
-        if (rolFiltro && rolFiltro !== 'todos') {
-             url += `?rol=${rolFiltro}`; 
-        }
-
-        const data = await apiFetch(url); 
-        setDatos(data); 
-
-      } catch (err) {
-        console.error('Error al obtener reporte:', err);
-        
-        const errorMessage = err.message || 'No se pudo cargar el reporte.';
-        setError(errorMessage);
-        setDatos([]);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchDatos();
-  }, [rolFiltro, isLoading, tienePermiso]);
-
-  const imprimir = () => {
+    // 2. Ejecutar la impresión si tiene permiso
     if (printRef.current) {
-      if (!tienePermiso(PERMISO_VER_REPORTE)) {
-          setError('No tienes permiso para imprimir el reporte.');
-          return;
-      }
-      imprimirHTML(printRef.current.innerHTML, "Reporte de Usuarios");
+      imprimirHTML(printRef.current.innerHTML, `Reporte de Usuarios - Rol: ${rolFiltro}`);
     }
   };
 
-  if (isLoading) return <div className="container mt-4"><p>Cargando permisos...</p></div>;
-  if (!tienePermiso(PERMISO_VER_REPORTE)) {
+  if (isLoadingAuth) return <div className="container mt-4"><p>Cargando permisos...</p></div>;
+
+  if (!puedeVer) {
       return <h2 className="container mt-4 text-danger">No tienes permiso para ver este reporte.</h2>;
   }
   
@@ -84,7 +56,7 @@ const Reporte = () => {
 
         <button
           className="btn btn-success"
-          onClick={imprimir}
+          onClick={handleImprimir}
           disabled={loading || datos.length === 0}
         >
           🖨️ Imprimir
@@ -95,30 +67,12 @@ const Reporte = () => {
       {error && <p className="alert alert-danger">{error}</p>}
 
       {!loading && !error && (
-        <div ref={printRef}>
-          {datos.length === 0 ? (
-              <p>No se encontraron datos para el filtro seleccionado.</p>
-          ) : (
-            <table className="table table-bordered table-striped">
-              <thead>
-                <tr>
-                  <th>ID</th>
-                  <th>Nombre</th>
-                  <th>Rol</th> 
-                </tr>
-              </thead>
-              <tbody>
-                {datos.map((d) => (
-                  <tr key={d.id}>
-                    <td>{d.id}</td>
-                    <td>{d.nombre}</td>
-                    <td>{d.rol}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          )}
-        </div>
+        <ReporteTabla
+            datos={datos}
+            loading={loading}
+            error={error}
+            printRef={printRef}
+        />
       )}
     </div>
   );

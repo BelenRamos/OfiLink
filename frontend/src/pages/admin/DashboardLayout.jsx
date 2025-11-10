@@ -11,7 +11,7 @@ import Oficios from './Oficios';
 const DashboardLayout = () => {
   return (
     <div className="container mt-4">
-      <h2>Panel de Administración</h2>
+      <h2>Seguridad de OfiLink</h2>
       <hr />
 
       <div className="row">

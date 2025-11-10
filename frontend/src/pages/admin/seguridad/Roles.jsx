@@ -1,69 +1,42 @@
-import React, { useEffect, useState, useCallback } from 'react';
-//import axios from 'axios';
-import { apiFetch } from '../../../utils/apiFetch';
+import React from 'react';
+import useRoles from '../../../hooks/seguridad/useRoles'; 
 import TablaRoles from '../../../components/TablaRoles'; 
 import FormularioAgregarRol from '../../../components/FormularioAgregarRol';
 import AsignarPermisosModal from '../../../components/AsignarPermisosModal';
 
-// Componente Principal
 const Roles = () => {
-    const [roles, setRoles] = useState([]);
-    const [todosLosPermisos, setTodosLosPermisos] = useState([]); 
-    const [error, setError] = useState('');
-    const [exito, setExito] = useState('');
-    const [expanded, setExpanded] = useState({}); // control de expandir/contraer general y del modal
-    const [modalRol, setModalRol] = useState(null); // Rol seleccionado para el modal
-
-    const fetchRoles = useCallback(async () => {
-        try {
-            const responseData = await apiFetch('/api/roles');
-            setRoles(responseData);
-            setError('');
-        } catch (error) {
-            setError('Error al obtener roles. Verifique permisos.');
-            setRoles([]);
-        }
-    }, []);
-
-    const fetchTodosLosPermisos = useCallback(async () => {
-        try {
-            const responseData = await apiFetch('/api/permisos');
-            setTodosLosPermisos(responseData);
-        } catch (error) {
-            console.error('Error al obtener todos los permisos:', error);
-        }
-    }, []);
-
-    useEffect(() => {
-        fetchRoles();
-        fetchTodosLosPermisos();
-    }, [fetchRoles, fetchTodosLosPermisos]);
-    
-    const toggleExpand = (id) => {
-        setExpanded((prev) => ({ ...prev, [id]: !prev[id] }));
-    };
-
-    const abrirModalPermisos = (rol) => {
-        setModalRol(rol);
-        setError('');
-        setExito(''); 
-    };
-
-    const cerrarModalPermisos = () => {
-        setModalRol(null);
-    };
+    // Consumimos el hook para obtener toda la funcionalidad y estados
+    const {
+        roles, 
+        todosLosPermisos,
+        error, 
+        setError, 
+        exito, 
+        setExito,
+        expanded, 
+        toggleExpand,
+        modalRol, 
+        abrirModalPermisos, 
+        cerrarModalPermisos,
+        fetchRoles,
+    } = useRoles();
 
     return (
-        <div>
-            <h5>Gestión de Roles</h5>
+        <div className="container mt-4">
+            <h5 className="mb-4">Gestión de Roles y Permisos</h5>
+            
+            {/* Mensajes de feedback */}
             {error && <div className="alert alert-danger">{error}</div>}
             {exito && <div className="alert alert-success">{exito}</div>}
 
+            {/* Formulario para agregar un nuevo rol */}
             <FormularioAgregarRol 
-                fetchRoles={fetchRoles} 
+                fetchRoles={fetchRoles} // Para refrescar la lista
                 setError={setError} 
                 setExito={setExito}
             />
+            
+            <hr className="my-4"/>
 
             {/* Tabla de Roles (CRUD) */}
             <TablaRoles
@@ -84,6 +57,8 @@ const Roles = () => {
                     setExito={setExito}
                     expanded={expanded} 
                     toggleExpand={toggleExpand}
+                    // No es necesario pasar fetchRoles aquí a menos que el modal
+                    // necesite refrescar la lista global tras guardar.
                 />
             )}
         </div>

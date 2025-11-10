@@ -1,5 +1,5 @@
 import { useEffect, useState, useMemo, useCallback } from 'react';
-import { apiFetch } from '../utils/apiFetch'; 
+import { apiFetch } from '../../utils/apiFetch'; 
 
 /**
  * Hook personalizado para gestionar la lógica de Denuncias:

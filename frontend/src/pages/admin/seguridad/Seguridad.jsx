@@ -20,7 +20,7 @@ const Seguridad = () => {
         return (
             <div className="container mt-4">
                 <div className="alert alert-danger" role="alert">
-                    🚫 **Acceso denegado.** No tienes el permiso requerido para acceder al Módulo de Seguridad.
+                    🚫Acceso denegado.No tienes el permiso requerido para acceder al Módulo de Seguridad.
                 </div>
             </div>
         );
