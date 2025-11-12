@@ -3,6 +3,7 @@ import useRoles from '../../../hooks/seguridad/useRoles';
 import TablaRoles from '../../../components/TablaRoles'; 
 import FormularioAgregarRol from '../../../components/FormularioAgregarRol';
 import AsignarPermisosModal from '../../../components/AsignarPermisosModal';
+import GenericConfirmModal from '../../../components/GenericConfirmModal'; // Asegúrate de que este import sea correcto
 
 const Roles = () => {
     // Consumimos el hook para obtener toda la funcionalidad y estados
@@ -16,8 +17,12 @@ const Roles = () => {
         expanded, 
         toggleExpand,
         modalRol, 
+        rolAEliminar, // Nuevo estado para el modal de confirmación
         abrirModalPermisos, 
         cerrarModalPermisos,
+        handleAbrirConfirmacionEliminar, // Nuevo handler
+        handleCerrarConfirmacionEliminar, // Nuevo handler
+        confirmarEliminarRol, // Nueva acción
         fetchRoles,
     } = useRoles();
 
@@ -26,12 +31,12 @@ const Roles = () => {
             <h5 className="mb-4">Gestión de Roles y Permisos</h5>
             
             {/* Mensajes de feedback */}
-            {error && <div className="alert alert-danger">{error}</div>}
-            {exito && <div className="alert alert-success">{exito}</div>}
+            {error && <div className="alert alert-danger shadow-sm">{error}</div>}
+            {exito && <div className="alert alert-success shadow-sm">{exito}</div>}
 
             {/* Formulario para agregar un nuevo rol */}
             <FormularioAgregarRol 
-                fetchRoles={fetchRoles} // Para refrescar la lista
+                fetchRoles={fetchRoles} 
                 setError={setError} 
                 setExito={setExito}
             />
@@ -45,6 +50,8 @@ const Roles = () => {
                 setError={setError}
                 setExito={setExito}
                 abrirModalPermisos={abrirModalPermisos}
+                // PASAMOS LA FUNCIÓN PARA ABRIR EL MODAL GENÉRICO
+                onDelete={handleAbrirConfirmacionEliminar} 
             />
 
             {/* Modal para Asignación de Permisos */}
@@ -57,10 +64,20 @@ const Roles = () => {
                     setExito={setExito}
                     expanded={expanded} 
                     toggleExpand={toggleExpand}
-                    // No es necesario pasar fetchRoles aquí a menos que el modal
-                    // necesite refrescar la lista global tras guardar.
                 />
             )}
+
+            {/* Modal de Confirmación de Eliminación */}
+            <GenericConfirmModal
+                show={!!rolAEliminar} // Muestra si hay un rol seleccionado para eliminar
+                onClose={handleCerrarConfirmacionEliminar}
+                onConfirm={confirmarEliminarRol}
+                title={`Eliminar Rol: ${rolAEliminar?.Nombre || ''}`}
+                message={`¿Está seguro que desea eliminar el rol "${rolAEliminar?.Nombre || ''}"? Esta acción no se puede deshacer y desasignará el rol a todos los usuarios.`}
+                confirmText="Sí, Eliminar Rol"
+                cancelText="Cancelar"
+                confirmButtonClass="btn-danger"
+            />
         </div>
     );
 };

@@ -3,7 +3,15 @@ import React, { useState } from 'react';
 import { apiFetch } from '../utils/apiFetch';
 import { FaEdit, FaTrashAlt, FaLockOpen } from 'react-icons/fa';
 
-const TablaRoles = ({ roles, fetchRoles, setError, setExito, abrirModalPermisos }) => {
+const TablaRoles = ({ 
+    roles, 
+    fetchRoles, 
+    setError, 
+    setExito, 
+    abrirModalPermisos, 
+    onDelete // Este prop se usa para abrir el GenericConfirmModal en Roles.jsx
+    }) => {
+
     const [editandoRol, setEditandoRol] = useState(null); 
     const [nombreEditado, setNombreEditado] = useState('');
 
@@ -97,12 +105,13 @@ const TablaRoles = ({ roles, fetchRoles, setError, setExito, abrirModalPermisos 
                                     >
                                         <FaLockOpen />
                                     </button>
-                                    <button 
-                                        onClick={() => handleEliminarRol(rol.Id)} 
-                                        className="btn btn-danger btn-sm"
+                                    {/* Botón para Eliminar - LLAMA AL NUEVO HANDLER DEL HOOK */}
+                                    <button
+                                        className="btn btn-sm btn-danger"
                                         title="Eliminar Rol"
+                                        onClick={() => onDelete(rol)}
                                     >
-                                        <FaTrashAlt />
+                                        <FaTrashAlt/> 
                                     </button>
                                 </>
                             )}

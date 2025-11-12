@@ -1,109 +1,72 @@
-import React, { useState, useEffect, useCallback } from 'react';
-import { apiFetch } from '../../../utils/apiFetch';
-import { useAuth } from '../../../hooks/useAuth';
+import React from 'react';
+import usePermisos from '../../../hooks/seguridad/usePermisos';
 import GenericConfirmModal from '../../../components/GenericConfirmModal';
 import PermisoFormModal from '../../../components/PermisoFormModal';
 import PermisoNode from '../../../components/PermisoNode';
-import { arrayToTree } from '../../../utils/arrayToTree';
 import { FaPlus } from 'react-icons/fa';
 
 const Permisos = () => {
-    const { tienePermiso, isLoading } = useAuth();
-    const PERMISO_GESTIONAR = 'gestionar_permisos';
+    const {
+        permisosPlano,
+        permisosArbol,
+        isLoadingAuth,
+        isAllowed,
+        error,
+        exito,
+        permisoAEditar,
+        showFormModal,
+        permisoAEliminar,
+        showAccessDeniedModal,
+        PERMISO_GESTIONAR,
+        fetchPermisos,
+        displaySuccess,
+        displayError,
+        handleAbrirEdicion,
+        handleCerrarEdicion,
+        handleAbrirConfirmacionEliminar,
+        handleCerrarConfirmacionEliminar,
+        confirmarEliminarPermiso,
+        setShowAccessDeniedModal
+    } = usePermisos();
 
-    const [permisosPlano, setPermisosPlano] = useState([]);
-    const [permisosArbol, setPermisosArbol] = useState([]);
-    const [error, setError] = useState('');
-    const [exito, setExito] = useState('');
-    const [permisoAEditar, setPermisoAEditar] = useState(null); 
-    const [showFormModal, setShowFormModal] = useState(false); 
-    const [permisoAEliminar, setPermisoAEliminar] = useState(null); 
-    const [showAccessDeniedModal, setShowAccessDeniedModal] = useState(false);
+    if (isLoadingAuth) {
+        return <div className="container mt-4"><p className="text-primary fw-bold">Cargando permisos...</p></div>;
+    }
 
-    const fetchPermisos = useCallback(async () => {
-        try {
-            const dataPlana = await apiFetch('/api/permisos');
-            setPermisosPlano(dataPlana);
-            setPermisosArbol(arrayToTree(dataPlana)); 
-            setError('');
-        } catch (err) {
-            setError(err.message || 'Error al cargar permisos. Verifique permisos.');
+    if (!isAllowed) {
+        if (showAccessDeniedModal) {
+            return (
+                <GenericConfirmModal
+                    show={showAccessDeniedModal}
+                    onClose={() => setShowAccessDeniedModal(false)}
+                    onConfirm={() => setShowAccessDeniedModal(false)}
+                    title="Acceso Denegado"
+                    message={`🚫 No tienes el permiso requerido (${PERMISO_GESTIONAR}) para gestionar permisos.`}
+                    confirmText="Entendido"
+                    cancelText={null}
+                    confirmButtonClass="btn-warning"
+                />
+            );
         }
-    }, []);
-
-    useEffect(() => {
-        if (!isLoading && tienePermiso(PERMISO_GESTIONAR)) {
-            fetchPermisos();
-        } else if (!isLoading && !tienePermiso(PERMISO_GESTIONAR)) {
-            setShowAccessDeniedModal(true);
-        }
-    }, [isLoading, tienePermiso, fetchPermisos]);
-
-    const displaySuccess = (message) => {
-        setExito(message);
-        setTimeout(() => {
-            setExito('');
-        }, 3000); 
-    };
-
-    const displayError = (message) => {
-        setError(message);
-        setTimeout(() => {
-            setError('');
-        }, 6000); 
-    };
-
-
-    const handleAbrirEdicion = (permiso = null) => {
-        setPermisoAEditar(permiso);
-        setShowFormModal(true); 
-        setError('');
-        setExito('');
-    };
-
-    const handleCerrarEdicion = () => {
-        setPermisoAEditar(null);
-        setShowFormModal(false); 
-    };
-
-    const handleAbrirConfirmacionEliminar = (permiso) => {
-        setPermisoAEliminar(permiso);
-    };
-
-    const handleCerrarConfirmacionEliminar = () => {
-        setPermisoAEliminar(null);
-    };
-
-    const confirmarEliminarPermiso = async () => {
-        const { Id, Nombre } = permisoAEliminar;
-
-        try {
-            await apiFetch(`/api/permisos/${Id}`, { method: 'DELETE' });
-            displaySuccess(`Permiso "${Nombre}" eliminado con éxito.`); 
-            fetchPermisos();
-        } catch (err) {
-            displayError(err.message || 'Error al eliminar el permiso. Verifique que no tenga permisos hijos asociados.'); 
-            setPermisoAEliminar(null);
-        }
-    };
-    
-    if (!tienePermiso(PERMISO_GESTIONAR) && !showAccessDeniedModal) {
-        return <div className="container mt-4"><p>Verificando acceso...</p></div>; 
+        return <div className="container mt-4"><p className="text-muted">Verificando acceso...</p></div>;
     }
 
     return (
         <div className="container mt-4">
-            <h3>Gestión de Permisos</h3>
+            <h3 className="mb-4">Gestión de Permisos</h3>
             
-            {error && <div className="alert alert-danger">{error}</div>}
-            {exito && <div className="alert alert-success">{exito}</div>}
+            {/* Mensajes de éxito y error (Se auto-limpian en el hook) */}
+            {error && <div className="alert alert-danger shadow-sm">{error}</div>}
+            {exito && <div className="alert alert-success shadow-sm">{exito}</div>}
 
-            {tienePermiso(PERMISO_GESTIONAR) && !showFormModal && (
+            {/* Botón de Creación */}
+            {isAllowed && !showFormModal && (
                 <button onClick={() => handleAbrirEdicion(null)} className="btn btn-primary mb-3">
-                    <FaPlus /> Crear Nuevo Permiso
+                    <FaPlus className="me-2" /> Crear Nuevo Permiso
                 </button>
             )}
 
+            {/* Modal de Formulario (Creación/Edición) */}
             <PermisoFormModal
                 show={showFormModal} 
                 onClose={handleCerrarEdicion}
@@ -115,44 +78,35 @@ const Permisos = () => {
             />
 
             {/* Tabla / Árbol de Permisos*/}
-            <table className="table table-bordered table-striped mt-3">
-                <thead className='table-dark'>
-                    <tr>
-                        <th>Permiso</th>
-                        <th>Descripción</th>
-                        <th style={{ width: '50px' }}>ID</th>
-                        <th style={{ width: '50px' }}>Padre</th>
-                        <th style={{ width: '150px' }}>Acciones</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {permisosArbol.length > 0 ? (
-                        permisosArbol.map(permiso => (
-                            <PermisoNode
-                                key={permiso.Id}
-                                permiso={permiso}
-                                nivel={0}
-                                onEdit={handleAbrirEdicion}
-                                onDelete={handleAbrirConfirmacionEliminar}
-                                todosLosPermisos={permisosPlano}
-                            />
-                        ))
-                    ) : (
-                        <tr><td colSpan="5">No hay permisos definidos.</td></tr>
-                    )}
-                </tbody>
-            </table>
-
-            <GenericConfirmModal
-                show={showAccessDeniedModal}
-                onClose={() => setShowAccessDeniedModal(false)}
-                onConfirm={() => setShowAccessDeniedModal(false)}
-                title="Acceso Denegado"
-                message={`🚫 No tienes el permiso requerido (${PERMISO_GESTIONAR}) para gestionar permisos.`}
-                confirmText="Entendido"
-                cancelText={null}
-                confirmButtonClass="btn-warning"
-            />
+            <div className="table-responsive">
+                <table className="table table-bordered table-striped mt-3 align-middle">
+                    <thead className='table-dark'>
+                        <tr>
+                            <th>Permiso</th>
+                            <th>Descripción</th>
+                            <th style={{ width: '50px' }}>ID</th>
+                            <th style={{ width: '50px' }}>Padre</th>
+                            <th style={{ width: '150px' }}>Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {permisosArbol.length > 0 ? (
+                            permisosArbol.map(permiso => (
+                                <PermisoNode
+                                    key={permiso.Id}
+                                    permiso={permiso}
+                                    nivel={0}
+                                    onEdit={handleAbrirEdicion}
+                                    onDelete={handleAbrirConfirmacionEliminar}
+                                    todosLosPermisos={permisosPlano}
+                                />
+                            ))
+                        ) : (
+                            <tr><td colSpan="5" className="text-center">No hay permisos definidos.</td></tr>
+                        )}
+                    </tbody>
+                </table>
+            </div>
 
             <GenericConfirmModal
                 show={!!permisoAEliminar}
