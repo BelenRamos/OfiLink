@@ -1,8 +1,7 @@
 import React from "react";
-import useRegistro from "../hooks/useRegistro"; 
+import useRegistro from "../hooks/useRegistro";
 
 const FormularioRegistro = () => {
-    // Usar el hook para obtener toda la lógica y estados
     const { 
         form, 
         error, 
@@ -13,13 +12,38 @@ const FormularioRegistro = () => {
     } = useRegistro();
 
     return (
-        <div className="container mt-4">
-            <h2>Registro</h2>
-            {error && <div className="alert alert-danger">{error}</div>}
-            {ok && <div className="alert alert-success">{ok}</div>}
-            <form onSubmit={handleSubmit} className="row g-3">
+        <div className="container mt-5 mb-5" style={{ maxWidth: "700px" }}>
+            <h2 
+                className="fw-bold mb-4 text-center"
+                style={{ color: "rgb(45, 48, 53)" }}
+            >
+                Registro
+            </h2>
+
+            {error && (
+                <div className="alert alert-danger shadow-sm rounded-3">
+                    {error}
+                </div>
+            )}
+
+            {ok && (
+                <div className="alert alert-success shadow-sm rounded-3">
+                    {ok}
+                </div>
+            )}
+
+            <form 
+                onSubmit={handleSubmit} 
+                className="row g-3 p-4 shadow-sm rounded-4"
+                style={{
+                    background: "white",
+                    border: "1px solid #eee"
+                }}
+            >
                 <div className="col-12">
-                    <label className="form-label">Nombre</label>
+                    <label className="form-label fw-semibold">
+                        Nombre
+                    </label>
                     <input
                         type="text"
                         name="nombre"
@@ -31,7 +55,9 @@ const FormularioRegistro = () => {
                 </div>
 
                 <div className="col-12">
-                    <label className="form-label">Correo electrónico</label>
+                    <label className="form-label fw-semibold">
+                        Correo electrónico
+                    </label>
                     <input
                         type="email"
                         name="mail"
@@ -43,7 +69,7 @@ const FormularioRegistro = () => {
                 </div>
 
                 <div className="col-md-6">
-                    <label className="form-label">Teléfono</label>
+                    <label className="form-label fw-semibold">Teléfono</label>
                     <input
                         type="text"
                         name="contacto"
@@ -56,7 +82,9 @@ const FormularioRegistro = () => {
                 </div>
 
                 <div className="col-md-6">
-                    <label className="form-label">Fecha de nacimiento</label>
+                    <label className="form-label fw-semibold">
+                        Fecha de nacimiento
+                    </label>
                     <input
                         type="date"
                         name="fecha_nacimiento"
@@ -68,7 +96,9 @@ const FormularioRegistro = () => {
                 </div>
 
                 <div className="col-md-6">
-                    <label className="form-label">Contraseña</label>
+                    <label className="form-label fw-semibold">
+                        Contraseña
+                    </label>
                     <input
                         type="password"
                         name="contraseña"
@@ -81,27 +111,48 @@ const FormularioRegistro = () => {
                 </div>
 
                 <div className="col-md-6">
-                    <label className="form-label">Registrarme como</label>
+                    <label className="form-label fw-semibold">
+                        Registrarme como
+                    </label>
                     <select
                         name="tipo_usuario"
                         value={form.tipo_usuario}
                         onChange={handleChange}
                         className="form-select"
+                        style={{ cursor: "pointer" }}
                     >
                         <option value="cliente">Cliente</option>
                         <option value="trabajador">Trabajador</option>
                     </select>
                 </div>
 
-                <div className="col-12 mt-3 d-flex justify-content-between">
-                    <button 
-                        type="button" 
-                        className="btn btn-secondary"
+                {/* Botones */}
+                <div className="col-12 mt-4 d-flex justify-content-between">
+                    <button
+                        type="button"
+                        className="btn px-4"
                         onClick={handleCancel}
+                        style={{
+                            background: "rgb(205, 148, 193)",
+                            border: "none",
+                            color: "white",
+                            fontWeight: "600"
+                        }}
                     >
                         Cancelar
                     </button>
-                    <button type="submit" className="btn btn-primary">Continuar</button>
+
+                    <button
+                        type="submit"
+                        className="btn px-4"
+                        style={{
+                            background: "rgb(45, 48, 53)",
+                            color: "white",
+                            fontWeight: "600"
+                        }}
+                    >
+                        Continuar
+                    </button>
                 </div>
             </form>
         </div>

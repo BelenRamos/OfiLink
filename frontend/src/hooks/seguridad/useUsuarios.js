@@ -101,8 +101,6 @@ const useUsuarios = ({ tienePermiso, isLoading }) => {
     }, []);
 
     // --- 6. Handlers de Acciones (Lógica de API) ---
-
-    // ACCIÓN: Resetear Contraseña
     const resetearContraseña = useCallback(async (id) => {
         if (!puedeResetear) { 
              setMensaje('Acción denegada: No tiene permiso para resetear contraseñas.');
@@ -127,7 +125,6 @@ const useUsuarios = ({ tienePermiso, isLoading }) => {
         }
     }, [puedeResetear, fetchUsuarios, extractErrorMessage]);
 
-    // Eliminar Cuenta Lógicamente
     const eliminarCuenta = useCallback(async (usuarioId) => {
         if (!puedeEliminar) { 
              setMensaje('Acción denegada: No tiene permiso para eliminar usuarios.');
@@ -151,44 +148,45 @@ const useUsuarios = ({ tienePermiso, isLoading }) => {
         }
     }, [puedeEliminar, fetchUsuarios, extractErrorMessage]);
 
-    // Toggle Bloqueo/Desbloqueo/Reactivación
     const toggleBloqueo = useCallback(async (usuario, motivo = null, duracionBloqueoDias = null) => {
+        
+        if (!puedeBloquear) { 
+              // El mensaje ahora debe ser más genérico, ya que cubre ambas acciones.
+              setMensaje('Acción denegada: No tiene permiso para bloquear o desbloquear usuarios.');
+              return;
+        }
+        
         const nuevoEstado = usuario.estado_cuenta === 'Activo' ? 'Bloqueado' : 'Activo';
         const accion = nuevoEstado === 'Bloqueado' ? 'bloquear' : 'desbloquear/reactivar';
-
-        if (accion === 'bloquear' && !puedeBloquear) { 
-             setMensaje('Acción denegada: No tiene permiso para bloquear usuarios.');
-             return;
-        }
-
+    
         try {
             const body = { 
                 nuevoEstado: nuevoEstado,
                 motivo: motivo || "" 
             };
-
+    
             if (nuevoEstado === 'Bloqueado' && duracionBloqueoDias) {
                 // Enviar la duración (número o 'indefinido')
                 body.duracionBloqueoDias = duracionBloqueoDias; 
             }
-
+    
             await apiFetch(`/api/personas/${usuario.id}/estado`, {
                 method: 'PUT',
                 body: body
             });
-
+    
             let mensajeExito;
             if (usuario.estado_cuenta === 'Eliminado') {
-                 mensajeExito = `La cuenta de ${usuario.nombre} fue reactivada exitosamente.`;
+                mensajeExito = `La cuenta de ${usuario.nombre} fue reactivada exitosamente.`;
             } else {
-                 mensajeExito = `Éxito: La cuenta de ${usuario.nombre} fue ${accion === 'bloquear' ? 'bloqueada' : 'desbloqueada'} exitosamente.`;
-                 if (accion === 'bloquear' && duracionBloqueoDias) {
-                     mensajeExito += duracionBloqueoDias === 'indefinido' ? ' (Indefinido).' : ` (Por ${duracionBloqueoDias} días).`;
-                 }
+                mensajeExito = `Éxito: La cuenta de ${usuario.nombre} fue ${accion === 'bloquear' ? 'bloqueada' : 'desbloqueada'} exitosamente.`;
+                if (accion === 'bloquear' && duracionBloqueoDias) {
+                    mensajeExito += duracionBloqueoDias === 'indefinido' ? ' (Indefinido).' : ` (Por ${duracionBloqueoDias} días).`;
+                }
             }
             setMensaje(mensajeExito);
             fetchUsuarios(); 
-            
+                
         } catch (error) {
             const fullMessage = extractErrorMessage(error, `Error al ${accion} la cuenta.`);
             console.error('Error al cambiar el estado de la cuenta:', error);

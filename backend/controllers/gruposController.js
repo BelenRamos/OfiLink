@@ -170,8 +170,8 @@ const deleteGrupo = async (req, res) => {
 module.exports = { 
     getGrupos, 
     createGrupo,
-    updateGrupo, // ✅ Nuevo
-    deleteGrupo, // ✅ Nuevo
+    updateGrupo,
+    deleteGrupo, 
     getRolesPorGrupo,  
     asignarRolesAGrupo  
 };

@@ -87,8 +87,6 @@ const getRolesConPermisos = async (req, res) => {
   }
 };
 
-// --- Nuevos Módulos para CRUD y Permisos ---
-
 // 1. UPDATE Rol (Editar Nombre)
 const updateRol = async (req, res) => {
     const { id } = req.params;
@@ -232,10 +230,10 @@ const asignarPermisosARol = async (req, res) => {
 module.exports = {
     getRoles,
     createRol,
-    updateRol,       // <-- Nuevo
-    deleteRol,       // <-- Nuevo
+    updateRol,      
+    deleteRol,    
     getRolesConPermisos,
-    getPermisosPorRol, // <-- Nuevo
+    getPermisosPorRol, 
     asignarPermisosARol
     };
 

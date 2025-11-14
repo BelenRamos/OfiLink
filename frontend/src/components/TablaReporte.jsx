@@ -2,43 +2,52 @@ import React from 'react';
 
 /**
  * Componente de presentación para mostrar la tabla de resultados del reporte de usuarios.
- * * @param {object} props 
- * @param {Array<object>} props.datos Lista de usuarios a mostrar.
- * @param {boolean} props.loading Estado de carga.
- * @param {string} props.error Mensaje de error a mostrar.
- * @param {React.RefObject} props.printRef Referencia para el contenido a imprimir.
  */
 const TablaReporte = ({ datos, loading, error, printRef }) => {
-    if (loading || error) {
-        return null; 
-    }
+  if (loading || error) {
+    return null;
+  }
 
-    return (
-        <div ref={printRef} className="mt-4">
-            {datos.length === 0 ? (
-                <p>No se encontraron datos para el filtro seleccionado.</p>
-            ) : (
-                <table className="table table-bordered table-striped">
-                    <thead>
-                        <tr>
-                            <th>ID</th>
-                            <th>Nombre</th>
-                            <th>Rol</th> 
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {datos.map((d) => (
-                            <tr key={d.id}>
-                                <td>{d.id}</td>
-                                <td>{d.nombre}</td>
-                                <td>{d.rol}</td>
-                            </tr>
-                        ))}
-                    </tbody>
-                </table>
-            )}
+  return (
+    <div ref={printRef} className="mt-4">
+      {datos.length === 0 ? (
+        <div className="alert alert-warning text-center">
+          No se encontraron datos para el filtro seleccionado.
         </div>
-    );
+      ) : (
+        <div className="table-responsive shadow-sm rounded-3">
+          <table className="table table-hover align-middle mb-0">
+            <thead className="table-light text-center">
+              <tr>
+                <th style={{ width: '10%' }}>ID</th>
+                <th>Nombre</th>
+                <th style={{ width: '30%' }}>Rol</th>
+              </tr>
+            </thead>
+            <tbody>
+              {datos.map((d) => (
+                <tr key={d.id}>
+                  <td className="fw-semibold text-center">{d.id}</td>
+                  <td>{d.nombre}</td>
+                  <td className="text-center">
+                    <span
+                      className="badge rounded-pill text-dark"
+                      style={{
+                        backgroundColor: 'rgb(205, 148, 193)',
+                        fontWeight: '500',
+                      }}
+                    >
+                      {d.rol}
+                    </span>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </div>
+  );
 };
 
 export default TablaReporte;

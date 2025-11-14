@@ -53,7 +53,7 @@ const MisContrataciones = () => {
 
     return (
         <div className="container mt-4">
-            <h2>Mis Contrataciones</h2>
+            <h2 className="fw-bold">Mis Contrataciones</h2>
 
             {/* Controles de Filtro */}
             <Row className="mb-4 g-3">

@@ -45,7 +45,7 @@ const UsuarioFilaAcciones = ({
                 <button
                     className={`btn btn-sm ${esActivo ? 'btn-danger' : 'btn-success'}`}
                     onClick={() => openConfirmModal(ACTION_BLOCK, usuario)} 
-                    disabled={esActivo && !puedeBloquear}
+                    disabled={!puedeBloquear}
                 >
                     {esActivo ? '🚫 Bloquear' : '🔓 Desbloquear'}
                 </button>

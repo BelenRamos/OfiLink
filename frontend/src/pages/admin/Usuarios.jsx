@@ -63,7 +63,7 @@ const Usuarios = () => {
                 puedeEliminar={puedeEliminar}
             />
           
-            {/* Manejo de Modales (No requiere cambios) */}
+            {/* Manejo de Modales */}
             {showConfirmModal && modalProps.useInputModal && targetUsuario && (
                 <ConfirmBlockModal
                     show={showConfirmModal}

@@ -43,7 +43,7 @@ const MisSolicitudes = () => {
   return (
     <div className="container mt-4">
       <div className="d-flex justify-content-between align-items-center mb-3">
-        <h2>Mis Solicitudes</h2>
+      <h2 className="fw-bold">Mis Solicitudes</h2>
         {puedePublicar && (
           <button
             className="btn btn-primary"
