@@ -29,7 +29,6 @@ const CardTrabajador = ({ trabajador }) => {
         <p className="card-text flex-grow-1">{trabajador.descripcion}</p>
         
         <div className="mt-auto d-flex gap-2">
-          <a href={`tel:${trabajador.contacto}`} className="btn btn-primary">Contactar</a>
           <Link to={`/perfil/${trabajador.id}`} className="btn btn-outline-secondary">Ver perfil</Link>
         </div>
       </div>

@@ -13,7 +13,7 @@ const Reporte = () => {
     loading,
     error,
     rolFiltro,
-    setRolFiltro,
+    setFiltroTipo,
     imprimir,
     puedeVer,
     isLoadingAuth,
@@ -40,12 +40,12 @@ const Reporte = () => {
     <div className="container mt-4">
       <h3>Generar Reporte</h3>
       <div className="d-flex align-items-center mb-3">
-        <label htmlFor="filtroRol" className="me-2">Filtrar por rol:</label>
+        <label htmlFor="filtroTipo" className="me-2">Filtrar por:</label>
         <select
-          id="filtroRol"
+          id="filtroTipo"
           className="form-select w-auto me-3"
           value={rolFiltro}
-          onChange={(e) => setRolFiltro(e.target.value)}
+          onChange={(e) => setFiltroTipo(e.target.value)}
         >
           <option value="todos">Todos</option>
           <option value="administrador">Administradores</option>

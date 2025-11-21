@@ -59,6 +59,7 @@ const getContrataciones = async (req, res) => {
           c.id, 
           pCliente.nombre AS cliente, 
           pTrabajador.nombre AS trabajador,
+          t.id AS id_trabajador,
           ec.descripcion AS estado, 
           c.fecha_inicio, 
           c.fecha_fin, 

@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useCallback } from "react";
 import CardSolicitudes from "../components/CardSolicitudes";
 import { useAuth } from "../hooks/useAuth";
 import SolicitudModal from "../components/SolicitudModal";
@@ -8,6 +8,7 @@ import { Form, Row, Col, Alert, Spinner } from 'react-bootstrap';
 const MisSolicitudes = () => {
   const { usuario, isLoading, tienePermiso, tieneRol } = useAuth(); 
   const [mostrarModal, setMostrarModal] = useState(false); 
+  const [mensajeExito, setMensajeExito] = useState(null);
   
   const PERMISO_VER_VISTA = 'ver_mis_solicitudes';
   const PERMISO_CANCELAR = 'cancelar_solicitud';
@@ -22,8 +23,18 @@ const MisSolicitudes = () => {
   } = useMisSolicitudes(tienePermiso, PERMISO_VER_VISTA);
 
   const handleFiltroEstadoChange = (event) => setFiltroEstado(event.target.value);
+  
+  const handleSolicitudCreada = useCallback((successData) => { 
+    const message = successData?.mensaje || "¡Solicitud publicada con éxito!"; 
+    setMensajeExito(message);
+    setMostrarModal(false);
+    recargarSolicitudes(); 
+    setTimeout(() => {
+      setMensajeExito(null);
+    }, 5000); 
+  }, [recargarSolicitudes]);
 
-  if (isLoading || loading) return <p className="mt-4"><Spinner animation="border" size="sm" /> Cargando datos...</p>;
+  if (isLoading || loading) return <div className="mt-4"><Spinner animation="border" size="sm" /> Cargando datos...</div>;
 
   if (!tienePermiso(PERMISO_VER_VISTA)) {
     return <h2 className="mt-4">No tienes permiso para acceder a "Mis Solicitudes".</h2>;
@@ -53,7 +64,11 @@ const MisSolicitudes = () => {
           </button>
         )}
       </div>
-
+      {mensajeExito && (
+        <Alert variant="success" onClose={() => setMensajeExito(null)} dismissible>
+          {mensajeExito}
+          </Alert>
+        )}
       <Row className="mb-4 g-3">
           {/* Filtro por Estado */}
           <Col xs={12} md={4}>
@@ -98,7 +113,7 @@ const MisSolicitudes = () => {
         <SolicitudModal
           show={mostrarModal}
           onClose={() => setMostrarModal(false)}
-          onSolicitudCreada={recargarSolicitudes}
+          onSolicitudCreada={handleSolicitudCreada} 
         />
       )}
     </div>

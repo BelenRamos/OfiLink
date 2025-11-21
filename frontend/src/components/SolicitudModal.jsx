@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Modal, Alert } from "react-bootstrap"; // Importado Alert
+import { Modal, Alert } from "react-bootstrap";
 import { apiFetch } from "../utils/apiFetch";
 import FormularioSolicitud from "./FormularioSolicitud";
 
@@ -21,8 +21,8 @@ const SolicitudModal = ({ show, onClose, onSolicitudCreada }) => {
         body: JSON.stringify(payload),
       });
       
-      // La función onSolicitudCreada debe notificar el éxito al componente padre
-      onSolicitudCreada('success', 'Solicitud publicada con éxito. Espera la respuesta de un trabajador.');
+      // La función onSolicitudCreada notifica el éxito al componente padre
+      onSolicitudCreada({ tipo: 'success', mensaje: '¡Publicaste tu Solicitud con éxito! Espera a que un trabajador te contacte.' });
       
       handleClose(); 
     } catch (err) {

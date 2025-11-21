@@ -12,11 +12,11 @@ const useReporte = ({ tienePermiso, isLoading }) => {
     const [datos, setDatos] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
-    const [rolFiltro, setRolFiltro] = useState('todos'); 
+    const [filtroTipo, setFiltroTipo] = useState('todos'); 
     
     const puedeVer = tienePermiso(PERMISO_VER_REPORTE);
 
-    const fetchDatos = useCallback(async (currentRolFiltro) => {
+    const fetchDatos = useCallback(async (currentfiltroTipo) => {
         if (!puedeVer) {
             setLoading(false);
             setError('No tienes permiso para ver el reporte.');
@@ -27,8 +27,8 @@ const useReporte = ({ tienePermiso, isLoading }) => {
         setError('');
         try {
             let url = '/api/personas/reporte';
-            if (currentRolFiltro && currentRolFiltro !== 'todos') {
-                url += `?rol=${currentRolFiltro}`; 
+            if (currentfiltroTipo && currentfiltroTipo !== 'todos') {
+                url += `?rol=${currentfiltroTipo}`; 
             }
 
             const data = await apiFetch(url); 
@@ -47,10 +47,10 @@ const useReporte = ({ tienePermiso, isLoading }) => {
 
     useEffect(() => {
         if (!isLoading) {
-            // Se llama a fetchDatos con el valor actual de rolFiltro
-            fetchDatos(rolFiltro);
+            // Se llama a fetchDatos con el valor actual de filtroTipo
+            fetchDatos(filtroTipo);
         }
-    }, [rolFiltro, isLoading, fetchDatos]);
+    }, [filtroTipo, isLoading, fetchDatos]);
     
     const imprimir = useCallback(() => {
         if (!puedeVer) {
@@ -64,8 +64,8 @@ const useReporte = ({ tienePermiso, isLoading }) => {
         datos,
         loading,
         error,
-        rolFiltro,
-        setRolFiltro,
+        filtroTipo,
+        setFiltroTipo,
         imprimir,
         puedeVer,
         isLoadingAuth: isLoading,

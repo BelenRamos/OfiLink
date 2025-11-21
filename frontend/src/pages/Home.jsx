@@ -1,5 +1,7 @@
 import React from 'react';
+import { useNavigate } from 'react-router-dom';
 import CardContratacion from '../components/CardContrataciones';
+import ModalResenaPendiente from '../components/ModalResenaPendiente';
 import { useAuth } from '../hooks/useAuth'; 
 import useHome from '../hooks/useHome';
 
@@ -11,6 +13,7 @@ const extractErrorMessage = (error, defaultMessage) => {
 
 const Home = () => {
   const { usuario, tienePermiso, tieneRol } = useAuth();
+  const navigate = useNavigate();
 
   const {
     contratacionesMostradas,
@@ -20,7 +23,22 @@ const Home = () => {
     cargarContrataciones,
     permisosTarjeta,
     estadosContratacion,
+    contratacionesPendientesResena,
+    modalResenaMostrado,
+    setModalResenaMostrado,
   } = useHome({ usuario, tienePermiso, tieneRol }, extractErrorMessage);
+
+  const esCliente = tieneRol('cliente'); 
+
+  const handleCerrarModalSolo = () => {
+      setModalResenaMostrado(true);
+  };
+
+  const handleCerrarModalYNavegar = () => {
+    setModalResenaMostrado(true);
+    // Navegamos directamente a la ruta de contrataciones
+    navigate('/mis-contrataciones'); 
+  };
 
   if (!tienePermiso("ver_home")) {
     return (
@@ -32,6 +50,14 @@ const Home = () => {
 
   return (
     <div className="container py-5">
+      {esCliente && contratacionesPendientesResena > 0 && !modalResenaMostrado && (
+                <ModalResenaPendiente
+                show={true}
+                handleClose={handleCerrarModalSolo} 
+                handleFiltrar={handleCerrarModalYNavegar} 
+                count={contratacionesPendientesResena}
+                />
+      )}
       {/* Encabezado */}
       <div className="text-center mb-4">
         <h2 className="fw-bold mb-1" style={{ color: 'rgb(45, 48, 53)' }}>

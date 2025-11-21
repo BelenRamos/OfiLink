@@ -21,7 +21,7 @@ const TablaReporte = ({ datos, loading, error, printRef }) => {
               <tr>
                 <th style={{ width: '10%' }}>ID</th>
                 <th>Nombre</th>
-                <th style={{ width: '30%' }}>Rol</th>
+                <th style={{ width: '30%' }}>Tipo de Usuario</th>
               </tr>
             </thead>
             <tbody>

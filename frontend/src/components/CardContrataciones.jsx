@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { apiFetch } from '../utils/apiFetch';
+import { Link } from 'react-router-dom';
 
 const CardContratacion = ({ contratacion, usuario, onActualizar, onResenaPendiente, permisos = {} }) => {
     const [estadoActual, setEstadoActual] = useState(contratacion.estado);
@@ -76,7 +77,16 @@ const CardContratacion = ({ contratacion, usuario, onActualizar, onResenaPendien
         <div className="card mb-3">
             <div className="card-body">
                 <h5 className="card-title">
-                    {contratacion.trabajador || 'Trabajador no asignado'}
+                {contratacion.id_trabajador ? (
+                    <Link 
+                        to={`/perfil/${contratacion.id_trabajador}`} 
+                        className="text-decoration-none"
+                    >
+                        {contratacion.trabajador || 'Trabajador no asignado'}
+                    </Link>
+                ) : (
+                    contratacion.trabajador || 'Trabajador no asignado'
+                )}
                 </h5>
                 <p><strong>Cliente:</strong> {contratacion.cliente || 'N/A'}</p>
                 <p><strong>Descripción:</strong> {contratacion.descripcion_trabajo || '(sin descripción)'}</p>

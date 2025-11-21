@@ -13,6 +13,7 @@ const useHome = ({ usuario, tienePermiso, tieneRol }, extractErrorMessage) => {
     const [mensaje, setMensaje] = useState('');
     // El filtro inicial puede ser 'Todas', pero los clientes solo ven 'En curso' por la lógica de filtrado.
     const [filtroEstado, setFiltroEstado] = useState('Todas'); 
+    const [modalResenaMostrado, setModalResenaMostrado] = useState(false);
     
     // Estados de Contratación disponibles
     const estadosContratacion = useMemo(() => ['En curso', 'Pendiente', 'Aceptada', 'Finalizada', 'Cancelada', 'Todas'], []);
@@ -60,6 +61,20 @@ const useHome = ({ usuario, tienePermiso, tieneRol }, extractErrorMessage) => {
         return mostradas;
     }, [contrataciones, tieneRol, filtroEstado]);
 
+    // --- 5. Lógica de Notificación (Reseñas Pendientes) ---
+    const contratacionesPendientesResena = useMemo(() => {
+        if (!tieneRol('cliente')) {
+            return 0; // Solo aplica para clientes
+        }
+
+        // Filtra TODAS las contrataciones cargadas, no solo las mostradas
+        const pendientes = contrataciones.filter(c => 
+            c.estado === 'Finalizada' && !c.reseña_id
+        ).length;
+
+        return pendientes;
+    }, [contrataciones, tieneRol]);
+
     // --- 5. Permisos de Tarjeta ---
     const permisosTarjeta = useMemo(() => ({
         aceptar: !!tienePermiso('contratacion_aceptar'),
@@ -77,6 +92,9 @@ const useHome = ({ usuario, tienePermiso, tieneRol }, extractErrorMessage) => {
         cargarContrataciones, 
         permisosTarjeta,
         estadosContratacion,
+        contratacionesPendientesResena,
+        modalResenaMostrado,
+        setModalResenaMostrado,
     };
 };
 
