@@ -7,8 +7,6 @@ const {
   manejarAccionContratacion,
 } = require('../controllers/contratacionesController');
 
-// Usar el middleware de autenticación JWT en todas las rutas de contrataciones
-// El router.use() aplica el middleware a TODAS las rutas definidas después de él.
 router.use(autenticarJWT);
 
 // GET /contrataciones: Obtener contrataciones del usuario autenticado

@@ -185,6 +185,7 @@ const useMiPerfil = ({ usuarioContext, logoutUser, tienePermiso, isLoading }) =>
         setIsEditing,
         setIsWorkerEditing,
         setShowDeleteModal,
+        setPerfilTrabajador,
 
         // Handlers de Lógica
         handlePerfilUpdate,

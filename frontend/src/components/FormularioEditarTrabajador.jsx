@@ -1,15 +1,4 @@
 import React, { useState, useEffect } from "react";
-//import axios from "axios";
-
-/* Nota importante sobre apiFetch
-Tu función apiFetch está diseñada para devolver directamente el cuerpo de la respuesta parseado a JSON (return response.json();).
-Por lo tanto:
-Con Axios (antes): const response = await axios.get(...), y usabas response.data.
-Con apiFetch (ahora): const data = await apiFetch(...), y usas data directamente.
-Al usar apiFetch("/api/zonas") y apiFetch("/api/oficios"), recibes directamente los arrays de zonas y oficios, 
-  lo cual hace que setZonasDisponibles(resZonas) sea correcto.
-Con este cambio, todas las peticiones a la API desde este componente estarán autenticadas, resolviendo los errores 401. */
-
 import { apiFetch } from "../utils/apiFetch"; 
 
 const FormularioEditarTrabajador = ({ 

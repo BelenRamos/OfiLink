@@ -103,7 +103,7 @@ const obtenerTrabajadorPorId = async (req, res) => {
         p.nombre,
         p.mail,
         p.foto AS foto_url, 
-        p.contacto,   -- 💡 CORRECCIÓN: Ahora se selecciona de la tabla Persona (p)
+        p.contacto,   
         t.descripcion,
         t.disponible,
         t.calificacion_promedio,

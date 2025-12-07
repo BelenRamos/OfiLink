@@ -1,4 +1,3 @@
-// src/utils/apiFetch.js
 export const apiFetch = async (url, options = {}) => {
   const usuario = JSON.parse(localStorage.getItem('usuarioActual') || '{}');
   const headers = options.headers || {};
@@ -27,7 +26,7 @@ export const apiFetch = async (url, options = {}) => {
     // Crear un nuevo Error
     const error = new Error(errorData.error || `HTTP error ${response.status}`);
     
-    // 💡 ADJUNTAR LA RESPUESTA COMPLETA DEL SERVIDOR al objeto Error
+    // ADJUNTAR LA RESPUESTA COMPLETA DEL SERVIDOR al objeto Error
     // Esto hace que 'error.response' esté disponible en el catch de Oficios.jsx
     error.response = errorData; 
     

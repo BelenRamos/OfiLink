@@ -19,7 +19,7 @@ const autenticarJWT = (req, res, next) => {
 };
 
 // --------------------------------------------------------
-// ✅ NUEVO MIDDLEWARE DE PERMISOS
+// MIDDLEWARE DE PERMISOS
 // --------------------------------------------------------
 const requirePermission = (...permisosRequeridos) => {
     // Retorna la función middleware de Express
@@ -66,5 +66,5 @@ const isAdmin = (req, res, next) => {
 module.exports = { 
     autenticarJWT, 
     isAdmin,
-    requirePermission // ✅ Exportamos el nuevo middleware
+    requirePermission 
 };

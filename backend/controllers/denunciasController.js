@@ -3,23 +3,6 @@ const jwt = require('jsonwebtoken');
 require('dotenv').config();
 const SECRET_KEY = process.env.SECRET_KEY;
 
-// Middleware para verificar token  --> Ya no haria falta por el autenticarJWT
-/* const verificarToken = (req, res, next) => {
-  try {
-    const authHeader = req.headers['authorization'];
-    if (!authHeader) return res.status(401).json({ error: 'Token no provisto' });
-
-    const token = authHeader.split(' ')[1];
-    const usuarioActual = jwt.verify(token, SECRET_KEY);
-
-    req.usuario = usuarioActual;
-    next();
-  } catch (error) {
-    console.error('Error de token:', error);
-    res.status(401).json({ error: 'Token inválido o expirado' });
-  }
-}; */
-
 const crearDenuncia = async (req, res) => {
   try {
     const { motivo, trabajador_id } = req.body;
@@ -71,17 +54,6 @@ const obtenerDenuncias = async (req, res) => {
       JOIN Persona pTrabajador ON t.id = pTrabajador.id
     `;
 
-/*     //Si es cliente: solo sus denuncias
-    if (usuario.roles_keys?.includes('cliente')) {
-      query += ` WHERE d.cliente_id = @idUsuario`;
-      request.input('idUsuario', sql.Int, usuario.id);
-    } 
-    //Si es trabajador: denuncias donde fue denunciado
-    else if (usuario.roles_keys?.includes('trabajador')) {
-      query += ` WHERE d.trabajador_id = @idUsuario`;
-      request.input('idUsuario', sql.Int, usuario.id);
-    } */
-
     //Si es administrador: ve todas
     query += ` ORDER BY d.fecha DESC`;
 
@@ -95,7 +67,6 @@ const obtenerDenuncias = async (req, res) => {
 
 
 module.exports = { 
-    //verificarToken, 
     crearDenuncia, 
-    obtenerDenuncias,
+    obtenerDenuncias
     };

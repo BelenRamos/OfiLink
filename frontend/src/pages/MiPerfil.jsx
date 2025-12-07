@@ -24,6 +24,7 @@ const MiPerfil = () => {
     setIsEditing,
     setIsWorkerEditing,
     setShowDeleteModal,
+    setPerfilTrabajador,
     handlePerfilUpdate,
     handleWorkerPerfilUpdate,
     handleFotoUpdate,
@@ -135,7 +136,9 @@ const MiPerfil = () => {
                 onCancel={() => setIsWorkerEditing(false)}
               />
             ) : (
-              <DetallesTrabajador perfilTrabajador={perfilTrabajador} />
+              <DetallesTrabajador 
+                perfilTrabajador={perfilTrabajador} 
+                setPerfilTrabajador={setPerfilTrabajador}/>
             )}
           </div>
         </div>

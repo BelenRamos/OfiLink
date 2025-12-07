@@ -1,7 +1,6 @@
 const { poolPromise, sql } = require('../db');
 
 const getHistorialAuditoria = async (req, res) => {
-    // 🔑 1. Leer los parámetros de fecha del query (pueden ser opcionales)
     const { fechaInicio, fechaFin } = req.query; 
     
     try {
@@ -29,21 +28,19 @@ const getHistorialAuditoria = async (req, res) => {
                 Persona P_ACCION ON A.UsuarioAccionId = P_ACCION.id
         `;
         
-        // 🔑 2. Agregar la cláusula WHERE para el filtro de fechas
+        // Filtro de fechas
         if (fechaInicio || fechaFin) {
             query += ` WHERE 1=1 `; // Punto de partida para encadenar condiciones
             
             if (fechaInicio) {
-                // Usamos >= para incluir el inicio del día
+                // Se usa >= para incluir el inicio del día
                 query += ` AND A.FechaHora >= @fechaInicio `;
-                // Usamos sql.DateTime para manejar el formato de fecha correctamente
+                // Se usa sql.DateTime para manejar el formato de fecha correctamente
                 request.input('fechaInicio', sql.DateTime, new Date(fechaInicio)); 
             }
             
             if (fechaFin) {
-                // Para incluir todo el día de fin: sumamos 1 día y usamos <
-                // Opcional: Si el frontend envía la fecha y hora, basta con <=
-                // Aquí asumimos que el frontend envía la fecha (YYYY-MM-DD) y queremos incluir hasta el final del día:
+                // Para incluir todo el día de fin: sumamos 1 día y se usa <
                 const dateFin = new Date(fechaFin);
                 dateFin.setDate(dateFin.getDate() + 1); // Sumar un día
                 query += ` AND A.FechaHora < @fechaFinMasUnoDia `; 

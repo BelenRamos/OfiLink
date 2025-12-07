@@ -69,7 +69,7 @@ const updateOficio = async (req, res) => {
 const deleteOficio = async (req, res) => {
   try {
     const { id } = req.params;
-    const pool = await poolPromise; // Asumiendo que poolPromise ya está disponible
+    const pool = await poolPromise; 
 
     // 1. VERIFICACIÓN DE INTEGRIDAD EN Solicitud_Oficio (La tabla sin ON DELETE CASCADE)
     // --------------------------------------------------------------------------------

@@ -8,14 +8,20 @@ const DetallesTrabajador = ({ perfilTrabajador, setPerfilTrabajador }) => {
 
   const handleDisponibilidadChange = async (e) => {
     const nuevoEstado = e.target.checked;
+    const estadoAnterior = perfilTrabajador.disponible; // Guarda el estado anterior
+    setPerfilTrabajador({ ...perfilTrabajador, disponible: nuevoEstado });
+
     try {
       await apiFetch(`/api/trabajadores/${perfilTrabajador.id}/disponibilidad`, {
         method: 'PUT',
         body: JSON.stringify({ disponible: nuevoEstado })
       });
-      setPerfilTrabajador({ ...perfilTrabajador, disponible: nuevoEstado });
+
     } catch (err) {
+      // Rollback: Si la API falla, revierte el estado
       console.error('Error al cambiar disponibilidad', err);
+      alert('Error: No se pudo actualizar la disponibilidad en el servidor.');
+      setPerfilTrabajador({ ...perfilTrabajador, disponible: estadoAnterior });
     }
   };
 
